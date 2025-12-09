@@ -39,20 +39,20 @@
                     </v-col>
 
                     <v-col cols="12" md="4">
-                        <v-card class="action-card h-100 d-flex flex-column align-center justify-center py-8 rounded-xl elevation-4">
+                        <v-card class="action-card h-100 d-flex flex-column align-center justify-center py-8 rounded-xl elevation-4" color="orange-lighten-5" @click="goToTunningPage">
                             <div class="icon-circle bg-orange-darken-1 mb-4">
                                 <v-icon icon="mdi-flash" size="32" color="white"></v-icon>
                             </div>
-                            <h2 class="text-h5 font-weight-bold text-grey-darken-3">Tuning</h2>
+                            <h2 class="text-h5 font-weight-bold text-orange-darken-3">Tuning</h2>
                         </v-card>
                     </v-col>
 
                     <v-col cols="12" md="4">
-                        <v-card class="action-card h-100 d-flex flex-column align-center justify-center py-8 rounded-xl elevation-4">
+                        <v-card class="action-card h-100 d-flex flex-column align-center justify-center py-8 rounded-xl elevation-4" color="purple-lighten-5" @click="goToRestorationPage">
                             <div class="icon-circle bg-purple-accent-3 mb-4">
                                 <v-icon icon="mdi-star-four-points" size="32" color="white"></v-icon>
                             </div>
-                            <h2 class="text-h5 font-weight-bold text-grey-darken-3">Restoration</h2>
+                            <h2 class="text-h5 font-weight-bold text-purple-darken-3">Restoration</h2>
                         </v-card>
                     </v-col>
                 </v-row>
@@ -62,9 +62,9 @@
                         <v-card class="pa-6 rounded-xl elevation-4 d-flex align-center">
                             <v-icon icon="mdi-calendar-check" color="blue" size="40" class="mr-4"></v-icon>
                             <div>
-                                <div class="text-subtitle-1 text-blue">Number of maintenance work done</div>
+                                <div class="text-subtitle-1">Number of maintenance work done</div>
                                 <!--Also dynamic -->
-                                <div class="text-h4 font-weight-bold text-blue-darken-3">3</div>
+                                <div class="text-h4 font-weight-bold">3</div>
                             </div>
                         </v-card>
                     </v-col>
@@ -74,9 +74,9 @@
                             <div class="d-flex align-center">
                                 <v-icon icon="mdi-cash" color="green" size="40" class="mr-4"></v-icon>
                                 <div>
-                                    <div class="text-subtitle-1 text-green">Total</div>
+                                    <div class="text-subtitle-1">Total</div>
                                     <!--Dynamic number based on the maintenance work costs-->
-                                    <div class="text-h4 font-weight-bold text-green-darken-3">1590 RON</div>
+                                    <div class="text-h4 font-weight-bold">1590 RON</div>
                                 </div>
                             </div>
                         </v-card>
@@ -88,12 +88,17 @@
                                 rounded="xl" 
                                 class="elevation-6 mt-4"
                                 prepend-icon="mdi-plus"
+                                @click="showMaintenanceDialog = true"
                             >
                                 Add maintenance
                             </v-btn>
                         </div>
                     </v-col>
                 </v-row>
+
+                <v-dialog v-model="showMaintenanceDialog" max-width="600">
+                    <AddMaintenanceForm @close="showMaintenanceDialog = false"></AddMaintenanceForm>
+                </v-dialog>
 
                 <v-row class="w-100 mt-6">
                     <v-col cols="12">
@@ -136,6 +141,20 @@
 
 <script setup>
 import appLogo from '@/assets/app-logo.png';
+import AddMaintenanceForm from '@/components/forms/AddMaintenanceForm.vue';
+import { useRouter } from 'vue-router';
+import { ref } from 'vue';
+
+const showMaintenanceDialog = ref(false);
+const router = useRouter();
+
+function goToTunningPage() {
+    router.push('/tunning');
+}
+
+function goToRestorationPage() {
+    router.push('/restoration');
+}
 </script>
 
 <style scoped>

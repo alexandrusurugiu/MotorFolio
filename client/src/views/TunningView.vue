@@ -31,7 +31,7 @@
 
                 <v-row class="w-100 mb-8">
                     <v-col cols="12" md="4">
-                        <v-card class="action-card h-100 d-flex flex-column align-center justify-center py-8 rounded-xl elevation-10" color="blue-lighten-5">
+                        <v-card class="action-card h-100 d-flex flex-column align-center justify-center py-8 rounded-xl elevation-10" color="blue-lighten-5" @click="goToMaintenancePage">
                             <div class="icon-circle bg-blue-accent-4 mb-4 elevation-4">
                                 <v-icon icon="mdi-wrench" size="32" color="white"></v-icon>
                             </div>
@@ -40,21 +40,21 @@
                     </v-col>
 
                     <v-col cols="12" md="4">
-                        <v-card class="action-card h-100 d-flex flex-column align-center justify-center py-8 rounded-xl elevation-4">
+                        <v-card class="action-card h-100 d-flex flex-column align-center justify-center py-8 rounded-xl elevation-4" color="orange-lighten-5">
                             <div class="icon-circle bg-orange-darken-1 mb-4">
                                 <v-icon icon="mdi-flash" size="32" color="white"></v-icon>
                             </div>
-                            <h2 class="text-h5 font-weight-bold text-grey-darken-3">Tunning</h2>
+                            <h2 class="text-h5 font-weight-bold text-orange-darken-3">Tunning</h2>
                             <v-progress-linear model-value="100" color="orange-accent-4" height="6" rounded class="mt-4 w-50"></v-progress-linear>
                         </v-card>
                     </v-col>
 
                     <v-col cols="12" md="4">
-                        <v-card class="action-card h-100 d-flex flex-column align-center justify-center py-8 rounded-xl elevation-4">
+                        <v-card class="action-card h-100 d-flex flex-column align-center justify-center py-8 rounded-xl elevation-4" color="purple-lighten-5" @click="goToRestorationPage">
                             <div class="icon-circle bg-purple-accent-3 mb-4">
                                 <v-icon icon="mdi-star-four-points" size="32" color="white"></v-icon>
                             </div>
-                            <h2 class="text-h5 font-weight-bold text-grey-darken-3">Restoration</h2>
+                            <h2 class="text-h5 font-weight-bold text-purple-darken-3">Restoration</h2>
                         </v-card>
                     </v-col>
                 </v-row>
@@ -62,22 +62,22 @@
                 <v-row class="w-100">
                     <v-col cols="12" md="4">
                         <v-card class="pa-6 rounded-xl elevation-4 d-flex align-center">
-                            <v-icon icon="mdi-flash" color="red" size="40" class="mr-4"></v-icon>
+                            <v-icon icon="mdi-flash" color="yellow-darken-3" size="40" class="mr-4"></v-icon>
                             <div>
-                                <div class="text-subtitle-1 text-red">Total mods</div>
+                                <div class="text-subtitle-1">Total mods</div>
                                 <!--The number should be volatile, changing depending on the number of mods done on the vehicle-->
-                                <div class="text-h4 font-weight-bold text-red-darken-3">3</div>
+                                <div class="text-h4 font-weight-bold">3</div>
                             </div>
                         </v-card>
                     </v-col>
 
                     <v-col cols="12" md="4">
                         <v-card class="pa-6 rounded-xl elevation-4 d-flex align-center">
-                            <v-icon icon="mdi-flash" color="orange" size="40" class="mr-4"></v-icon>
+                            <v-icon icon="mdi-cash" color="green" size="40" class="mr-4"></v-icon>
                             <div>
-                                <div class="text-subtitle-1 text-orange">Investment</div>
+                                <div class="text-subtitle-1">Investment</div>
                                 <!--The number should be volatile, changing depending on the number of mods done on the vehicle-->
-                                <div class="text-h4 font-weight-bold text-orange-darken-3">156.700 RON</div>
+                                <div class="text-h4 font-weight-bold">156.700 RON</div>
                             </div>
                         </v-card>
                     </v-col>
@@ -85,11 +85,11 @@
                     <v-col cols="12" md="4">
                         <v-card class="pa-6 rounded-xl elevation-4 mb-4">
                             <div class="d-flex align-center">
-                                <v-icon icon="mdi-cash" color="purple" size="40" class="mr-4"></v-icon>
+                                <v-icon icon="mdi-speedometer" color="black" size="40" class="mr-4"></v-icon>
                                 <div>
-                                    <div class="text-subtitle-1 text-purple">Horsepower gain</div>
+                                    <div class="text-subtitle-1">Horsepower gain</div>
                                     <!--The number should be volatile, changing depending on the cost of the modifications done on the vehicle-->
-                                    <div class="text-h4 font-weight-bold text-purple-darken-3">+356 HP</div>
+                                    <div class="text-h4 font-weight-bold">+356 HP</div>
                                 </div>
                             </div>
                         </v-card>
@@ -101,12 +101,17 @@
                                 rounded="xl" 
                                 class="elevation-6 mt-4"
                                 prepend-icon="mdi-plus"
+                                @click="showTunningDialog = true"
                             >
                                 Add modd
                             </v-btn>
                         </div>
                     </v-col>
                 </v-row>
+
+                <v-dialog v-model="showTunningDialog" max-width="600">
+                    <AddTunningForm @close="showTunningDialog = false"></AddTunningForm>
+                </v-dialog>
 
                 <v-row class="w-100 mt-6">
                     <v-col cols="12">
@@ -158,7 +163,22 @@
 
 <script setup>
 import appLogo from '@/assets/app-logo.png';
+import { ref } from 'vue';
+import AddTunningForm from '@/components/forms/AddTunningForm.vue';
+import { useRouter } from 'vue-router';
+
+const showTunningDialog = ref(false);
+const router = useRouter();
+
+function goToMaintenancePage() {
+  router.push('/maintenance');
+}
+
+function goToRestorationPage() {
+    router.push('/restoration');
+}
 </script>
+
 
 <style scoped>
 .maintenance-page {
