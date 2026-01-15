@@ -4,30 +4,8 @@
 
         <div class="content-layer">
             <v-container fluid class="fill-height align-start pa-6">
-                <v-row class="w-100 mb-8 mt-2" no-gutters>
-                    <v-col cols="2" class="d-flex align-center justify-start">
-                        <v-img :src="appLogo" width="80" height="80" contain class="mr-4"></v-img>
-                        
-                        <div class="text-white text-left">
-                            <h1 class="text-h4 font-weight-bold">MotorFolio</h1>
-                            <!--The name of the user should also be volatile-->
-                            <p class="text-subtitle-1 opacity-80">Welcome back, Alex!</p>
-                        </div>
-                    </v-col>
-
-                    <v-col cols="10" class="d-flex align-center justify-end">
-                        <v-btn 
-                            variant="outlined" 
-                            color="white" 
-                            size="large" 
-                            rounded="pill"
-                            class="px-6"
-                            prepend-icon="mdi-logout"
-                        >
-                            Disconnect
-                        </v-btn>
-                    </v-col>
-                </v-row>
+                
+                <AppHeader></AppHeader>
 
                 <v-row class="w-100 mb-8">
                     <v-col cols="12" md="4">
@@ -162,10 +140,10 @@
 </template>
 
 <script setup>
-import appLogo from '@/assets/app-logo.png';
 import { ref } from 'vue';
 import AddTunningForm from '@/components/forms/AddTunningForm.vue';
 import { useRouter } from 'vue-router';
+import AppHeader from '@/components/forms/AppHeader.vue';
 
 const showTunningDialog = ref(false);
 const router = useRouter();
