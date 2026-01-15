@@ -1,4 +1,4 @@
-const db = require('../database/db');
+const { db, admin } = require('../database/db');
 const { validationResult } = require('express-validator');
 const { hashPassword, generateToken, comparePassword } = require('../auth/passLogic');
 
@@ -52,6 +52,11 @@ const login = async (req, res) => {
 
         const userDoc = query.docs[0];
         const userData = userDoc.data();
+
+        if (!userData.password) {
+            return res.status(400).json({ message: 'This account is registered via Google. Please use Google Sign-In to log in.' });
+        }
+
         const isPasswordValid = await comparePassword(password, userData.password);
 
         if (!isPasswordValid) {
@@ -74,7 +79,52 @@ const login = async (req, res) => {
     }
 };
 
+const googleLogin = async(req, res) => {
+    const { token } = req.body;
+
+    try {
+        const decodedToken = await admin.auth().verifyIdToken(token);
+        const { email, name } = decodedToken;
+        const query = await db.collection('users').where('email', '==', email).get();
+
+        let userId;
+        let userData;
+
+        if (query.empty) {
+            const newUser = await db.collection('users').add({
+                name: name,
+                email: email,
+                password: null,
+                createdAt: new Date().toISOString()
+            });
+
+            userId = newUser.id;
+            userData = { name, email };
+        } else {
+            const userDoc = query.docs[0];
+            userId = userDoc.id;
+            userData = userDoc.data();
+        }
+
+        const tokenPayload = { id: userId, email: email }
+        const authToken = generateToken(tokenPayload);
+
+        res.json({
+            token: authToken,
+            user: {
+                id: userId,
+                name: userData.name,
+                email: userData.email
+            }
+        });
+    } catch (error) {
+        console.error("Error: ", error);
+        res.status(401).json({ message: 'Invalid Google token!' });
+    }
+}
+
 module.exports = {
     register, 
-    login
+    login,
+    googleLogin
 };

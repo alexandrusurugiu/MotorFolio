@@ -11,4 +11,4 @@ function initializeDatabase() {
 
 const db = initializeDatabase();
 
-module.exports = db;
+module.exports = { db, admin };

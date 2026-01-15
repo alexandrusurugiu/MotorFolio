@@ -60,7 +60,7 @@
                             <span v-else>Create account</span>
                         </v-btn>  
                         
-                        <v-btn v-if="tab === 'login'" block color="red-darken-3" size="large" class="mt-4 text-white">
+                        <v-btn v-if="tab === 'login'" block color="red-darken-3" prepend-icon="mdi-google" @click="handleGoogleLogin" :loading="loading" size="large" class="mt-4 text-white">
                             <span>Sign In with Google</span>
                         </v-btn>  
                     </v-card-text>
@@ -84,6 +84,8 @@
     import appLogo from '@/assets/app-logo.png';
     import { useRouter } from 'vue-router';
     import axios from 'axios';
+    import { signInWithPopup } from 'firebase/auth';
+    import { auth, googleProvider } from '@/firebaseConfig'
 
     const tab = ref('login');
     const router = useRouter();
@@ -136,6 +138,37 @@
            } else {
                 errorMessage.value = 'An error occured. Please try again later!';
            }
+        } finally {
+            loading.value = false;
+        }
+    };
+
+    const handleGoogleLogin = async() => {
+        loading.value = true;
+        errorMessage.value = '';
+
+        try {
+            const result = await signInWithPopup(auth, googleProvider);
+            const user = result.user;
+            const token = await user.getIdToken();
+
+            const response = await axios.post('http://localhost:5000/server/auth/google-login', {
+                token: token
+            });
+
+            const { token: appToken, user: appUser } = response.data;
+            localStorage.setItem('token', appToken);
+            localStorage.setItem('user', JSON.stringify(appUser));
+
+            router.push('/maintenance');
+        } catch (error) {
+            console.log(error);
+                
+            if (error.response && error.response.data) {
+                errorMessage.value = error.response.data.message;
+            } else {
+                errorMessage.value = 'Failed to login via Google account!';
+            }
         } finally {
             loading.value = false;
         }
