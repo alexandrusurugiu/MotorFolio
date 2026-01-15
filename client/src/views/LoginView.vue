@@ -34,17 +34,17 @@
 
                     <v-card-text class="mt-4">
                         <v-expand-transition>
-                            <v-text-field v-if="tab === 'register'" label="Name" prepend-inner-icon="mdi-account" variant="outlined"></v-text-field>
+                            <v-text-field v-if="tab === 'register'" label="Name" v-model="formData.name" prepend-inner-icon="mdi-account" variant="outlined"></v-text-field>
                         </v-expand-transition>
                         
-                        <v-text-field label="Email" prepend-inner-icon="mdi-email-outline" variant="outlined"></v-text-field>
-                        <v-text-field label="Password" type="password" prepend-inner-icon="mdi-lock-outline" variant="outlined"></v-text-field>
+                        <v-text-field label="Email" v-model="formData.email" prepend-inner-icon="mdi-email-outline" variant="outlined"></v-text-field>
+                        <v-text-field label="Password" v-model="formData.password" type="password" prepend-inner-icon="mdi-lock-outline" variant="outlined"></v-text-field>
 
                         <v-expand-transition>
-                            <v-text-field v-if="tab === 'register'" label="Confirm Password" type="password" prepend-inner-icon="mdi-lock-outline" variant="outlined"></v-text-field>
+                            <v-text-field v-if="tab === 'register'" label="Confirm Password" v-model="formData.confirmPassword" type="password" prepend-inner-icon="mdi-lock-outline" variant="outlined"></v-text-field>
                         </v-expand-transition>
 
-                        <v-btn block color="black" size="large" class="mt-4 text-white">
+                        <v-btn block color="black" size="large" @click="handleSubmit" :loading="loading" class="mt-4 text-white">
                             <span v-if="tab === 'login'">Sign In</span>
                             <span v-else>Create account</span>
                         </v-btn>  
@@ -71,8 +71,61 @@
 <script setup>
     import { ref } from 'vue';
     import appLogo from '@/assets/app-logo.png';
+    import { useRouter } from 'vue-router';
+    import axios from 'axios';
 
     const tab = ref('login');
+    const router = useRouter();
+    const loading = ref(false);
+    const error = ref('');
+
+    const formData = ref({
+        name: '',
+        email: '',
+        password: '',
+        confirmPassword: ''
+    });
+
+    const handleSubmit = async() => {
+        loading.value = true;
+        error.value = '';
+
+        try {
+            const url = 'http://localhost:5000/server/auth';
+
+            if (tab.value === 'register') {
+                await axios.post(`${url}/register`, {
+                    name: formData.value.name,
+                    email: formData.value.email,
+                    password: formData.value.password,
+                    confirmPassword: formData.value.confirmPassword
+                });
+
+                alert('registration successful! Please Log In!');
+                tab.value = 'login';
+            } else {
+                const response = await axios.post(`${url}/login`, {
+                    email: formData.value.email,
+                    password: formData.value.password
+                });
+
+                const { token, user } = response.data;
+                localStorage.setItem('token', token);
+                localStorage.setItem('user', JSON.stringify(user));
+
+                router.push('/maintenance');
+            } 
+        } catch (error) {
+           if (error.response && error.response.data && error.response.data.message) {
+                error.value = error.message.data.errors[0].msg;
+           } else {
+                error.value = 'An error accured. Please try again later!';
+           }
+        } finally {
+            loading.value = false;
+        }
+    };
+
 </script>
 
 <style scoped>

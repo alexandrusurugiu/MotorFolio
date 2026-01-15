@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const morgan = require('morgan');
+const authRoutes = require('./routes/authRoutes');
 require('dotenv').config();
 
 const app = express();
@@ -10,12 +11,7 @@ app.use(morgan('dev'));
 app.use(cors());
 app.use(express.json());
 
-app.get('/', (req, res) => {
-    res.json({
-        message: 'MotorFolio API is running!',
-        status: 'success'
-    });
-});
+app.use('/server/auth', authRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server running on ${PORT}...`);
