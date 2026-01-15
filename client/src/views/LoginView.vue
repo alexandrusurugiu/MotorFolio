@@ -26,6 +26,17 @@
             <v-col cols="12" md="4">
         
                 <v-card class="elevation-12 rounded-lg pa-5">
+
+                    <v-alert
+                        v-if="errorMessage"
+                        type="error"
+                        variant="tonal"
+                        class="mb-4"
+                        closable
+                        @click:close="errorMessage = ''"
+                    >
+                        {{ errorMessage }}
+                    </v-alert>
                     
                     <v-tabs v-model="tab" align-tabs="center" color="black">
                         <v-tab value="login">Login</v-tab>
@@ -77,7 +88,7 @@
     const tab = ref('login');
     const router = useRouter();
     const loading = ref(false);
-    const error = ref('');
+    const errorMessage = ref('');
 
     const formData = ref({
         name: '',
@@ -88,7 +99,7 @@
 
     const handleSubmit = async() => {
         loading.value = true;
-        error.value = '';
+        errorMessage.value = '';
 
         try {
             const url = 'http://localhost:5000/server/auth';
@@ -116,10 +127,14 @@
                 router.push('/maintenance');
             } 
         } catch (error) {
-           if (error.response && error.response.data && error.response.data.message) {
-                error.value = error.message.data.errors[0].msg;
+           if (error.response && error.response.data) {
+                if (error.response.data.errors) {
+                    errorMessage.value = error.response.data.errors[0].msg;
+                } else if (error.response.data.message) {
+                    errorMessage.value = error.response.data.message;
+                }
            } else {
-                error.value = 'An error accured. Please try again later!';
+                errorMessage.value = 'An error occured. Please try again later!';
            }
         } finally {
             loading.value = false;
