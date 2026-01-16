@@ -42,8 +42,7 @@
                             <v-icon icon="mdi-calendar-check" color="blue" size="40" class="mr-4"></v-icon>
                             <div>
                                 <div class="text-subtitle-1">Number of maintenance work done</div>
-                                <!--Also dynamic -->
-                                <div class="text-h4 font-weight-bold">3</div>
+                                <div class="text-h4 font-weight-bold">{{ totalCount }}</div>
                             </div>
                         </v-card>
                     </v-col>
@@ -54,8 +53,7 @@
                                 <v-icon icon="mdi-cash" color="green" size="40" class="mr-4"></v-icon>
                                 <div>
                                     <div class="text-subtitle-1">Total</div>
-                                    <!--Dynamic number based on the maintenance work costs-->
-                                    <div class="text-h4 font-weight-bold">1590 RON</div>
+                                    <div class="text-h4 font-weight-bold">{{ totalCost }} RON</div>
                                 </div>
                             </div>
                         </v-card>
@@ -76,7 +74,7 @@
                 </v-row>
 
                 <v-dialog v-model="showMaintenanceDialog" max-width="600">
-                    <AddMaintenanceForm @close="showMaintenanceDialog = false"></AddMaintenanceForm>
+                    <AddMaintenanceForm @close="showMaintenanceDialog = false" @refresh="fetchMaintenanceList"></AddMaintenanceForm>
                 </v-dialog>
 
                 <v-row class="w-100 mt-6">
@@ -87,26 +85,24 @@
                                 Maintenance History
                             </v-card-title>
 
-                            <v-card flat class="bg-blue-lighten-5 rounded-lg pa-4 mb-4 history-item">
-                                <!--The name and the description also volatile-->
-                                <h3 class="text-h6 font-weight-bold text-blue-darken-4 mb-1">Oil and filter change</h3>
-                                <p class="text-body-2 text-blue-darken-2 mb-3">5W-30 Castrol oil, oil filter, air filter, cabin filter</p>
+                            <div v-if="maintenanceList.length === 0" class="text-center py-4 text-grey">There is no record of maintenance yet.</div>
+
+                            <v-card v-else v-for="item in maintenanceList" :key="item.id" flat class="bg-blue-lighten-5 rounded-lg pa-4 mb-4 history-item">
+                                <h3 class="text-h6 font-weight-bold text-blue-darken-4 mb-1"> {{ item.title }}</h3>
+                                <p class="text-body-2 text-blue-darken-2 mb-3">{{ item.description }}</p>
                                 
                                 <div class="d-flex flex-wrap align-center">
                                     <div class="d-flex align-center mr-6">
                                         <v-icon icon="mdi-calendar" size="small" color="blue" class="mr-2"></v-icon>
-                                        <!--The date should also be volatile-->
-                                        <span class="text-body-2 text-blue font-weight-medium">November 15, 2024</span>
+                                        <span class="text-body-2 text-blue font-weight-medium">{{ new Date(item.date).toLocaleDateString() }}</span>
                                     </div>
                                     <div class="d-flex align-center mr-6">
                                         <v-icon icon="mdi-currency-usd" size="small" color="green" class="mr-2"></v-icon>
-                                        <!--The price of the maintenance should be volatile-->
-                                        <span class="text-body-2 text-green font-weight-bold">350 RON</span>
+                                        <span class="text-body-2 text-green font-weight-bold">{{ item.price }} RON</span>
                                     </div>
                                     <div class="d-flex align-center">
                                         <v-icon icon="mdi-speedometer" size="small" color="purple" class="mr-2"></v-icon>
-                                        <!--The km of the car should be volatile-->
-                                        <span class="text-body-2 text-purple font-weight-medium">145,000 km</span>
+                                        <span class="text-body-2 text-purple font-weight-medium">{{ item.mileage }} km</span>
                                     </div>
                                 </div>
                             </v-card>
@@ -121,11 +117,13 @@
 <script setup>
 import AddMaintenanceForm from '@/components/forms/AddMaintenanceForm.vue';
 import { useRouter } from 'vue-router';
-import { ref } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import AppHeader from '@/components/forms/AppHeader.vue';
+import axios from 'axios';
 
 const showMaintenanceDialog = ref(false);
 const router = useRouter();
+const maintenanceList = ref([]);
 
 function goToTunningPage() {
     router.push('/tunning');
@@ -134,6 +132,39 @@ function goToTunningPage() {
 function goToRestorationPage() {
     router.push('/restoration');
 }
+
+const fetchMaintenanceList = async () => {
+    try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user.id) {
+            alert('An error occured. Please relog!');
+            return;
+        }
+
+        const response = await axios.get(`http://localhost:5000/server/maintenance/${user.id}`);
+
+        if (Array.isArray(response.data)) {
+            maintenanceList.value = response.data;
+            maintenanceList.value.sort((a, b) => new Date(b.date) - new Date(a.date));
+        } else {
+            console.error('Invalid data format, expected an array!');
+            maintenanceList.value = [];
+        }
+    } catch (error) {
+        console.error('Error when trying to fetch maintenance list: ', error.message);
+        maintenanceList.value = [];
+    }
+};
+
+onMounted(() => {
+    fetchMaintenanceList();
+});
+
+const totalCost = computed(() => {
+    return maintenanceList.value.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
+});
+
+const totalCount = computed(() => maintenanceList.value.length);
 </script>
 
 <style scoped>
