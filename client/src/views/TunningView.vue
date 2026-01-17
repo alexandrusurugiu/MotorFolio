@@ -43,8 +43,7 @@
                             <v-icon icon="mdi-flash" color="yellow-darken-3" size="40" class="mr-4"></v-icon>
                             <div>
                                 <div class="text-subtitle-1">Total mods</div>
-                                <!--The number should be volatile, changing depending on the number of mods done on the vehicle-->
-                                <div class="text-h4 font-weight-bold">3</div>
+                                <div class="text-h4 font-weight-bold">{{ totalMods }}</div>
                             </div>
                         </v-card>
                     </v-col>
@@ -54,8 +53,7 @@
                             <v-icon icon="mdi-cash" color="green" size="40" class="mr-4"></v-icon>
                             <div>
                                 <div class="text-subtitle-1">Investment</div>
-                                <!--The number should be volatile, changing depending on the number of mods done on the vehicle-->
-                                <div class="text-h4 font-weight-bold">156.700 RON</div>
+                                <div class="text-h4 font-weight-bold">{{ totalInvestment }} RON</div>
                             </div>
                         </v-card>
                     </v-col>
@@ -66,8 +64,7 @@
                                 <v-icon icon="mdi-speedometer" color="black" size="40" class="mr-4"></v-icon>
                                 <div>
                                     <div class="text-subtitle-1">Horsepower gain</div>
-                                    <!--The number should be volatile, changing depending on the cost of the modifications done on the vehicle-->
-                                    <div class="text-h4 font-weight-bold">+356 HP</div>
+                                    <div class="text-h4 font-weight-bold">+{{ totalPowerGain }} HP</div>
                                 </div>
                             </div>
                         </v-card>
@@ -88,7 +85,7 @@
                 </v-row>
 
                 <v-dialog v-model="showTunningDialog" max-width="600">
-                    <AddTunningForm @close="showTunningDialog = false"></AddTunningForm>
+                    <AddTunningForm @close="showTunningDialog = false" @refresh="fetchTunningList"></AddTunningForm>
                 </v-dialog>
 
                 <v-row class="w-100 mt-6">
@@ -99,35 +96,30 @@
                                 Modification List
                             </h2>
 
-                            <v-card flat class="bg-red-lighten-5 rounded-xl pa-5 mb-4 mod-item border-red-thin">
+                            <div v-if="tunningList.length === 0" class="text-center py-4 text-grey">There is no record of tunning yet.</div>
+
+                            <v-card v-else v-for="item in tunningList" :key="item.id" flat class="bg-red-lighten-5 rounded-xl pa-5 mb-4 mod-item border-red-thin">
                                 <v-chip color="red-accent-3" class="mb-3 font-weight-bold px-4" size="small" label>
-                                    <!--Here maybe the icon can change depending on the category?-->
-                                    <v-icon start icon="mdi-engine" size="small"></v-icon>
-                                    Engine
+                                    <v-icon start :icon="getCategoryIcon(item.category)" size="small"></v-icon>
+                                    {{ item.category }}
                                 </v-chip>
 
-                                <!--The name of the mod should also be volatile, based on the completed form-->
-                                <h3 class="text-h6 font-weight-bold text-red-darken-4 mb-1">Turbo K04 Upgrade</h3>
-                                <!--The description of the mod should also be volatile, based on the completed form-->
-                                <p class="text-body-2 text-red-darken-3 mb-4 opacity-90">
-                                    Turbo upgrade from K03 to K04, larger intercooler, custom piping
-                                </p>
+                                <h3 class="text-h6 font-weight-bold text-red-darken-4 mb-1">{{ item.title }}</h3>
+
+                                <p class="text-body-2 text-red-darken-3 mb-4 opacity-90">{{ item.description }}</p>
                                 
                                 <div class="d-flex flex-wrap align-center">
                                     <div class="d-flex align-center mr-6 mb-2">
                                         <v-icon icon="mdi-calendar" size="small" color="red-darken-2" class="mr-2"></v-icon>
-                                        <!--The date of the mod should also be volatile, based on the completed form-->
-                                        <span class="text-caption text-red-darken-4 font-weight-medium">October 15, 2024</span>
+                                        <span class="text-caption text-red-darken-4 font-weight-medium">{{ new Date(item.date).toLocaleDateString() }}</span>
                                     </div>
                                     <div class="d-flex align-center mr-6 mb-2">
                                         <v-icon icon="mdi-cash" size="small" color="green-darken-2" class="mr-2"></v-icon>
-                                        <!--The price of the mod should also be volatile, based on the completed form-->
-                                        <span class="text-caption text-green-darken-3 font-weight-bold">4500 RON</span>
+                                        <span class="text-caption text-green-darken-3 font-weight-bold">{{ item.price }} RON</span>
                                     </div>
                                     <div class="d-flex align-center mb-2">
                                         <v-icon icon="mdi-flash" size="small" color="purple-darken-2" class="mr-2"></v-icon>
-                                        <!--The power gain of the mod should also be volatile and optional, based on the completed form-->
-                                        <span class="text-caption text-purple-darken-3 font-weight-bold">+320 HP</span>
+                                        <span class="text-caption text-purple-darken-3 font-weight-bold">+{{ item.powerGained }} HP</span>
                                     </div>
                                 </div>
                             </v-card>
@@ -140,13 +132,23 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import AddTunningForm from '@/components/forms/AddTunningForm.vue';
 import { useRouter } from 'vue-router';
 import AppHeader from '@/components/forms/AppHeader.vue';
+import axios from 'axios';
 
 const showTunningDialog = ref(false);
 const router = useRouter();
+const tunningList=ref([]);
+const categoryIcons = {
+    'Engine': 'mdi-engine',
+    'Suspension': 'mdi-shock-absorber',
+    'Exhaust': 'mdi-pipe-muffler',
+    'Wheels': 'mdi-tire',
+    'Exterior': 'mdi-car-wash',
+    'Interior': 'mdi-car-seat'
+};
 
 function goToMaintenancePage() {
   router.push('/maintenance');
@@ -155,6 +157,47 @@ function goToMaintenancePage() {
 function goToRestorationPage() {
     router.push('/restoration');
 }
+
+const fetchTunningList = async () => {
+    try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user.id) {
+            alert('An error occured. Please relog!');
+            return;
+        }
+
+        const response = await axios.get(`http://localhost:5000/server/tunning/${user.id}`);
+
+        if (Array.isArray(response.data)) {
+            tunningList.value = response.data;
+            tunningList.value.sort((a, b) => new Date(b.date) - new Date(a.date));
+        } else {
+            console.error('Invalid data format, expected an array!');
+            tunningList.value = [];
+        }
+    } catch (error) {
+        console.error('Error when trying to fetch tunning list: ', error.message);
+        tunningList.value = [];
+    }
+};
+
+onMounted(() => {
+    fetchTunningList();
+});
+
+const totalInvestment = computed(() => {
+    return tunningList.value.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
+});
+
+const totalPowerGain = computed(() => {
+    return tunningList.value.reduce((acc, item) => acc + (Number(item.powerGained) || 0), 0);
+});
+
+const totalMods = computed(() => tunningList.value.length);
+
+const getCategoryIcon = (category) => {
+    return categoryIcons[category];
+};
 </script>
 
 

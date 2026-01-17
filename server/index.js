@@ -3,6 +3,7 @@ const cors = require('cors');
 const morgan = require('morgan');
 const authRoutes = require('./routes/authRoutes');
 const maintenanceRoutes = require('./routes/maintenanceRoutes');
+const tunningRoutes = require('./routes/tunningRoutes');
 require('dotenv').config();
 
 const app = express();
@@ -14,6 +15,7 @@ app.use(express.json());
 
 app.use('/server/auth', authRoutes);
 app.use('/server/maintenance', maintenanceRoutes);
+app.use('/server/tunning', tunningRoutes);
 
 app.listen(PORT, () => {
     console.log(`Server running on ${PORT}...`);
