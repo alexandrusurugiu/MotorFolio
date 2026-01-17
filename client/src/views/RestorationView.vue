@@ -47,11 +47,11 @@
                                     </v-card-title>
                                 </div>
 
-                                <div class="text-h5 font-weight-bold">38%</div>
+                                <div class="text-h5 font-weight-bold">{{ Math.round(progressPercentage) }}%</div>
                             </div>
 
                             <v-progress-linear 
-                                model-value="38" 
+                                :model-value="progressPercentage" 
                                 color="purple-darken-3" 
                                 height="12" 
                                 rounded
@@ -59,7 +59,7 @@
                             ></v-progress-linear>
 
                             <div class="text-subtitle-1 font-weight-bold mt-2 text-grey-darken-1"> 
-                                3/8 finished phases
+                                {{ completedStages }}/{{ totalStages }} finished stages
                             </div>
                         </v-card>
 
@@ -93,16 +93,18 @@
                             <v-timeline density="compact" side="end" align="start" truncate-line="both">
                                 
                                 <v-timeline-item 
-                                    v-for="item in restorationStages" 
+                                    v-for="item in restorationList" 
                                     :key="item.id"
                                     :dot-color="item.status === 'completed' ? 'green-accent-4' : 'purple-lighten-4'"
                                     :icon="item.status === 'completed' ? 'mdi-check' : 'mdi-circle-outline'"
                                     size="small"
                                     fill-dot
+                                    @click="toggleStageStatus(item.id)"
+                                    style="cursor: pointer;"
                                 >
                                     <v-card 
                                         flat 
-                                        class="rounded-lg pa-4 mb-2"
+                                        class="rounded-lg pa-4 mb-2 w-100"
                                         :class="item.status === 'completed' ? 'bg-green-lighten-5 border-green' : 'bg-purple-lighten-5 border-purple'"
                                         style="border: 1px solid transparent;"
                                     >
@@ -169,13 +171,15 @@
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import AddRestorationForm from '@/components/forms/AddRestorationForm.vue';
 import AppHeader from '@/components/forms/AppHeader.vue';
+import axios from 'axios';
 
 const showRestorationDialog = ref(false);
 const router = useRouter();
+const restorationList = ref([]);
 
 function goToMaintenancePage() {
     router.push('/maintenance');
@@ -185,59 +189,61 @@ function goToTunningPage() {
     router.push('/tunning');
 }
 
-//Dummy data
-const restorationStages = ref([
-    {
-        id: 1,
-        stage: 'Stage 1',
-        title: 'Rust treatment and body repair',
-        description: 'Rust removal, welding new sheets on sills and wings, anti-corrosion treatment',
-        date: 'Finalized: April 20, 2024',
-        status: 'completed'
-    },
-    {
-        id: 2,
-        stage: 'Stage 2',
-        title: 'Priming and filling',
-        description: 'Applying epoxy primer, filling to smooth surfaces',
-        date: 'Finalized: June 10, 2024',
-        status: 'completed'
-    },
-    {
-        id: 3,
-        stage: 'Stage 3',
-        title: 'Body Painting',
-        description: 'Complete painting in original color, applying protective clear coat',
-        date: null,
-        status: 'pending'
-    },
-    {
-        id: 4,
-        stage: 'Stage 4',
-        title: 'Engine Rebuild',
-        description: 'Engine reconstruction: grinding, new pistons, reconditioned crankshaft',
-        date: null,
-        status: 'pending'
-    }
-]);
+const fetchRestorationList = async () => {
+    try {
+        const user = JSON.parse(localStorage.getItem('user'));
+        if (!user || !user.id) {
+            console.error('An error occured. Please try again!');
+            return;
+        }
 
-function toggleStageStatus(id) {
-    const stage = restorationStages.value.find(item => item.id === id);
-    
-    if (stage) {
-        if (stage.status === 'pending') {
-            stage.status = 'completed';
-            stage.date = new Date().toLocaleDateString('en-US', { 
-                year: 'numeric', 
-                month: 'long', 
-                day: 'numeric' 
-            });
+        const response = await axios.get(`http://localhost:5000/server/restoration/${user.id}`);
+
+        if (Array.isArray(response.data)) {
+            restorationList.value = response.data;
+            restorationList.value.sort((a, b) => new Date(b.date) - new Date(a.date));
         } else {
-            stage.status = 'pending';
+            console.error('Invalid data format, expected an array!');
+            restorationList.value = [];
+        }
+    } catch (error) {
+        console.error('Error when trying to fetch restoration list: ', error.message);
+        restorationList.value = [];
+    }
+};
+
+onMounted(() => {
+    fetchRestorationList();
+})
+
+const totalStages = computed(() => restorationList.value.length);
+
+const completedStages = computed(() => {
+    return restorationList.value.filter(stage => stage.status === 'completed').length;
+});
+
+const progressPercentage = computed(() => {
+    if (totalStages.value === 0) {
+        return 0;
+    }
+
+    return (completedStages.value / totalStages.value) * 100;
+})
+
+async function toggleStageStatus(id) {
+    const stage = restorationList.value.find(item => item.id === id);
+
+    if (stage) {
+        const newStatus = stage.status === 'completed' ? 'pending' : 'completed';
+        stage.status = newStatus;
+
+        if (newStatus === 'completed') {
+            stage.date = new Date().toLocaleDateString();
+        } else {
             stage.date = null;
         }
     }
-}
+};
 </script>
 
 <style scoped>
@@ -309,4 +315,11 @@ function toggleStageStatus(id) {
 :deep(.v-timeline-divider__line) {
     background: #E1BEE7 !important;
 }
+
+:deep(.v-timeline-item__body) {
+    width: 100%;
+    flex: 1;
+    padding-right: 0 !important;
+}
+
 </style>
