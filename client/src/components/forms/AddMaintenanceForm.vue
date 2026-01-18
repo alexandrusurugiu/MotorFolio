@@ -5,12 +5,12 @@
         </v-card-title>
 
         <v-card-text>
-            <v-form ref="form">
-                <v-text-field label="Title" v-model="formData.title" placeholder="ex:Oil change" variant="outlined"></v-text-field>
+            <v-form ref="form" @submit.prevent="saveMaintenance">
+                <v-text-field label="Title" v-model="formData.title" placeholder="ex:Oil change" variant="outlined" :rules="[rules.required]"></v-text-field>
                 <v-text-field label="Description" v-model="formData.description" placeholder="Details about the maintenance work" variant="outlined"></v-text-field>
                 <v-date-picker label="Date" v-model="formData.date"></v-date-picker>
-                <v-text-field label="Price" v-model="formData.price" placeholder="0" variant="outlined"></v-text-field>
-                <v-text-field label="Mileage" v-model="formData.mileage" placeholder="0" variant="outlined"></v-text-field>
+                <v-text-field label="Price" v-model="formData.price" placeholder="0" variant="outlined" :rules="[rules.positive]"></v-text-field>
+                <v-text-field label="Mileage" v-model="formData.mileage" placeholder="0" variant="outlined" :rules="[rules.required, rules.positive]"></v-text-field>
             </v-form>
         </v-card-text>
 
@@ -26,6 +26,12 @@
     import axios from 'axios';
 
     const emit = defineEmits(['close', 'refresh']);
+    const form = ref(null);
+
+    const rules = {
+        required: v => !!v || 'Field is required!',
+        positive: v => v >= 0 || 'Must be a positive number!'
+    };
 
     const props = defineProps({
         editData: {
@@ -45,12 +51,12 @@
     });
 
     const saveMaintenance = async () => {
-        try {
-            if (!formData.value.title || !formData.value.price) {
-                alert('Please fill in Title and Price fields!');
-                return;
-            }
+        const { valid } = await form.value.validate();
+        if (!valid) {
+            return;
+        }
 
+        try {
             const user = JSON.parse(localStorage.getItem('user'));
 
             const payload =  {
@@ -72,6 +78,12 @@
             emit('close');
         } catch (error) {
             console.error('Error when trying to save the maintenance: ', error.message);
+
+            if (error.response && error.response.data && error.response.data.errors) {
+                alert(error.response.data.errors[0].message);
+            } else {
+                alert('An error occured!');
+            }
         }
     };
     
