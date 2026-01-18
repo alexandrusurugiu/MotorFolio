@@ -5,10 +5,12 @@
         </v-card-title>
 
         <v-card-text>
-            <v-text-field label="Title" v-model="formData.title" placeholder="ex: Rust removal" variant="outlined"></v-text-field>
-            <v-text-field label="Description" v-model="formData.description" placeholder="ex: Details about the restoration work" variant="outlined"></v-text-field>
-            <v-date-picker label="Date" v-model="formData.date"></v-date-picker>
-            <v-text-field label="Price" v-model="formData.price" placeholder="0" variant="outlined"></v-text-field>
+            <v-form ref="form" @submit.prevent="saveRestoration">
+                <v-text-field label="Title" v-model="formData.title" placeholder="ex: Rust removal" variant="outlined" :rules="[rules.required]"></v-text-field>
+                <v-text-field label="Description" v-model="formData.description" placeholder="ex: Details about the restoration work" variant="outlined"></v-text-field>
+                <v-date-picker label="Date" v-model="formData.date"></v-date-picker>
+                <v-text-field label="Price" v-model="formData.price" placeholder="0" variant="outlined" :rules="[rules.positive]"></v-text-field>
+            </v-form>
         </v-card-text>
 
         <v-card-actions class="justify-end">
@@ -23,12 +25,18 @@
     import axios from 'axios';
 
     const emit = defineEmits(['close', 'refresh']);
+    const form = ref(null);
     const props = defineProps({
         editData: {
             type: Object,
             default: null
         }
     });
+
+    const rules = {
+        required: v => !!v || 'Field is required!',
+        positive: v => v >= 0 || 'Must be positive!'
+    };
 
     const isEditMode = computed(() => props.editData !== null);
 
@@ -40,12 +48,12 @@
     });
 
     const saveRestoration = async () => {
+        const { valid } = await form.value.validate();
+        if (!valid) {
+            return;
+        }
+        
         try {
-            if (!formData.value.title) {
-                alert('Please fill in the Title field!');
-                return;
-            }
-
             const user = JSON.parse(localStorage.getItem('user'));
 
             const payload = {
@@ -66,6 +74,11 @@
             emit('close');
         } catch (error) {
             console.error('Error when trying to save the restoration: ', error.message);
+            if (error.response && error.response.data && error.response.data.errors) {
+                alert(error.response.data.errors[0].message);
+            } else {
+                alert('An error occured!');
+            }
         }
     };
 
