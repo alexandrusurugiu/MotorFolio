@@ -65,7 +65,7 @@
                                 rounded="xl" 
                                 class="elevation-6 mt-4"
                                 prepend-icon="mdi-plus"
-                                @click="showMaintenanceDialog = true"
+                                @click="openAddDialog"
                             >
                                 Add maintenance
                             </v-btn>
@@ -74,7 +74,7 @@
                 </v-row>
 
                 <v-dialog v-model="showMaintenanceDialog" max-width="600">
-                    <AddMaintenanceForm @close="showMaintenanceDialog = false" @refresh="fetchMaintenanceList"></AddMaintenanceForm>
+                    <AddMaintenanceForm :edit-data="selectedMaintenance" :key="selectedMaintenance ? selectedMaintenance.id : 'new'" @close="showMaintenanceDialog = false" @refresh="fetchMaintenanceList"></AddMaintenanceForm>
                 </v-dialog>
 
                 <v-row class="w-100 mt-6">
@@ -91,9 +91,15 @@
                                 <div class="d-flex justify-space-between align-start mb-2">
                                     <h3 class="text-h6 font-weight-bold text-blue-darken-4 mb-1"> {{ item.title }}</h3>
 
-                                    <v-btn icon variant="text" density="compact" color="red-lighten-2" @click="deleteMaintenance(item.id)">
-                                        <v-icon icon="mdi-delete-outline"></v-icon>
-                                    </v-btn>
+                                    <div>
+                                        <v-btn icon variant="text" density="compact" color="teal-darken-1" class="pb-2 mr-3" @click="editMaintenance(item)">
+                                            <v-icon icon="mdi-pencil-outline"></v-icon>
+                                        </v-btn>
+
+                                        <v-btn icon variant="text" density="compact" color="red-lighten-2" class="pb-2" @click="deleteMaintenance(item.id)">
+                                            <v-icon icon="mdi-delete-outline"></v-icon>
+                                        </v-btn>
+                                    </div>
                                 </div>
                                 
                                 <p class="text-body-2 text-blue-darken-2 mb-3">{{ item.description }}</p>
@@ -131,6 +137,7 @@ import axios from 'axios';
 const showMaintenanceDialog = ref(false);
 const router = useRouter();
 const maintenanceList = ref([]);
+const selectedMaintenance = ref(null);
 
 function goToTunningPage() {
     router.push('/tunning');
@@ -186,6 +193,16 @@ const totalCost = computed(() => {
 });
 
 const totalCount = computed(() => maintenanceList.value.length);
+
+const openAddDialog = () => {
+    selectedMaintenance.value = null;
+    showMaintenanceDialog.value = true;
+}
+
+const editMaintenance = (item) => {
+    selectedMaintenance.value = item;
+    showMaintenanceDialog.value = true;
+}
 </script>
 
 <style scoped>

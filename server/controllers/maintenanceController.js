@@ -46,12 +46,26 @@ const deleteMaintenance = async(req, res) => {
 
         res.status(200).json({ message: 'Maintenance deleted successfully!'});
     } catch (error) {
-        res.status(500).json({ message: 'Failed delete maintenance: ', error });
+        res.status(500).json({ message: 'Failed to delete maintenance: ', error });
+    }
+}
+
+const updateMaintenance = async(req, res) => {
+    try {
+        const { id } = req.params;
+        const data = req.body;
+
+        await db.collection('maintenances').doc(id).update(data);
+
+        res.status(200).json({ message: 'Maintenance updated successfully!' });
+    } catch (error) {
+        res.status(500).josn({ message: 'Failed to update maintenance: ', error });
     }
 }
 
 module.exports = { 
     addMaintenance,
     getMaintenanceListByUserId,
-    deleteMaintenance
+    deleteMaintenance,
+    updateMaintenance
 };

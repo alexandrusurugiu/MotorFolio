@@ -1,7 +1,7 @@
 <template>
     <v-card class="pa-6 rounded-xl elevation-4 mb-4">
         <v-card-title class="font-weight-bold">
-            Add maintenance work
+            {{ idEditMode ? 'Edit maintenance' : 'Add maintenance' }}
         </v-card-title>
 
         <v-card-text>
@@ -22,10 +22,19 @@
 </template>
 
 <script setup>
-    import { ref } from 'vue';
+    import { ref, onMounted, computed } from 'vue';
     import axios from 'axios';
 
-    const emit = defineEmits(['close', 'save']);
+    const emit = defineEmits(['close', 'refresh']);
+
+    const props = defineProps({
+        editData: {
+            type: Object,
+            default: null
+        }
+    });
+
+    const isEditMode = computed(() => props.editData !== null)
 
     const formData = ref({
         title: '',
@@ -44,19 +53,37 @@
 
             const user = JSON.parse(localStorage.getItem('user'));
 
-            await axios.post('http://localhost:5000/server/maintenance/add-maintenance', {
+            const payload =  {
                 userId: user.id,
                 title: formData.value.title,
                 description: formData.value.description,
                 date: formData.value.date,
-                price: formData.value.price,
-                mileage: formData.value.mileage
-            });
+                price: Number(formData.value.price),
+                mileage: Number(formData.value.mileage)
+            };
+
+            if (isEditMode.value) {
+                await axios.put(`http://localhost:5000/server/maintenance/update/${props.editData.id}`, payload);
+            } else {
+                await axios.post(`http://localhost:5000/server/maintenance/add-maintenance`, payload);
+            }
 
             emit('refresh');
             emit('close');
         } catch (error) {
             console.error('Error when trying to save the maintenance: ', error.message);
         }
-    }; 
+    };
+    
+    onMounted(() => {
+        if (isEditMode.value) {
+            formData.value = {
+                title: props.editData.title,
+                description: props.editData.description,
+                date: new Date(props.editData.date),
+                price: props.editData.price,
+                mileage: props.editData.mileage
+            };
+        }
+    });
 </script>
