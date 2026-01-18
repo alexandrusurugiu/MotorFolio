@@ -76,7 +76,7 @@
                                 rounded="xl" 
                                 class="elevation-6 mt-4"
                                 prepend-icon="mdi-plus"
-                                @click="showTunningDialog = true"
+                                @click="openAddDialog"
                             >
                                 Add modd
                             </v-btn>
@@ -85,7 +85,7 @@
                 </v-row>
 
                 <v-dialog v-model="showTunningDialog" max-width="600">
-                    <AddTunningForm @close="showTunningDialog = false" @refresh="fetchTunningList"></AddTunningForm>
+                    <AddTunningForm :edit-data="selectedTunning" :key="selectedTunning ? selectedTunning.id : 'new'" @close="showTunningDialog = false" @refresh="fetchTunningList"></AddTunningForm>
                 </v-dialog>
 
                 <v-row class="w-100 mt-6">
@@ -106,9 +106,16 @@
                                         {{ item.category }}
                                     </v-chip>
 
-                                    <v-btn icon variant="text" density="compact" color="red-lighten-2" class="pb-2" @click="deleteTunning(item.id)">
-                                        <v-icon icon="mdi-delete-outline"></v-icon>
-                                    </v-btn>
+                                    <div>
+                                        <v-btn icon variant="text" density="compact" color="teal-darken-1" class="pb-2 mr-3" @click="editTunning(item)">
+                                            <v-icon icon="mdi-pencil-outline"></v-icon>
+                                        </v-btn>
+
+                                        <v-btn icon variant="text" density="compact" color="red-lighten-2" class="pb-2" @click="deleteTunning(item.id)">
+                                            <v-icon icon="mdi-delete-outline"></v-icon>
+                                        </v-btn>
+                                    </div>
+                                    
                                 </div>
 
                                 <h3 class="text-h6 font-weight-bold text-red-darken-4 mb-1">{{ item.title }}</h3>
@@ -148,11 +155,12 @@ import axios from 'axios';
 
 const showTunningDialog = ref(false);
 const router = useRouter();
-const tunningList=ref([]);
+const tunningList = ref([]);
+const selectedTunning = ref(null);
 const categoryIcons = {
     'Engine': 'mdi-engine',
-    'Suspension': 'mdi-shock-absorber',
-    'Exhaust': 'mdi-pipe-muffler',
+    'Suspension': 'mdi-arrow-expand-vertical',
+    'Exhaust': 'mdi-weather-windy',
     'Wheels': 'mdi-tire',
     'Exterior': 'mdi-car-wash',
     'Interior': 'mdi-car-seat'
@@ -220,6 +228,16 @@ const totalMods = computed(() => tunningList.value.length);
 const getCategoryIcon = (category) => {
     return categoryIcons[category];
 };
+
+const openAddDialog = () => {
+    selectedTunning.value = null;
+    showTunningDialog.value = true;
+}
+
+const editTunning = (item) => {
+    selectedTunning.value = item;
+    showTunningDialog.value = true;
+}
 </script>
 
 

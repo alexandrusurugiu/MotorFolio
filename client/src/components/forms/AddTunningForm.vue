@@ -1,7 +1,7 @@
 <template>
     <v-card class="pa-6 rounded-xl elevation-4 mb-4">
         <v-card-title class="font-weight-bold">
-            Add modification
+            {{ isEditMode ? 'Edit tunning' : 'Add tunning' }}
         </v-card-title>
 
         <v-card-text>
@@ -21,10 +21,19 @@
 </template>
 
 <script setup>
-    import { ref } from 'vue';
+    import { ref, onMounted, computed } from 'vue';
     import axios from 'axios';
 
     const emit = defineEmits(['close', 'refresh']);
+
+    const props = defineProps({
+        editData: {
+            type: Object,
+            default: null
+        }
+    });
+
+    const isEditMode = computed(() => props.editData !== null);
 
     const formData = ref({
         title: '',
@@ -44,15 +53,21 @@
 
             const user = JSON.parse(localStorage.getItem('user'));
 
-            await axios.post('http://localhost:5000/server/tunning/add-tunning', {
+            const payload = {
                 userId: user.id,
                 title: formData.value.title,
                 description: formData.value.description,
                 category: formData.value.category,
                 date: formData.value.date,
-                price: formData.value.price,
-                powerGained: formData.value.powerGained
-            });
+                price: Number(formData.value.price),
+                powerGained: Number(formData.value.powerGained)
+            };
+
+            if (isEditMode.value) {
+                await axios.put(`http://localhost:5000/server/tunning/update/${props.editData.id}`, payload);
+            } else {
+                await axios.post(`http://localhost:5000/server/tunning/add-tunning`, payload);
+            }
 
             emit('refresh');
             emit('close');
@@ -60,4 +75,17 @@
             console.error('Error when trying to save the tunning: ', error.message);
         }
     };
+
+    onMounted(() => {
+        if (isEditMode.value) {
+            formData.value = {
+                title: props.editData.title,
+                description: props.editData.description,
+                category: props.editData.category,
+                date: new Date(props.editData.date),
+                price: props.editData.price,
+                powerGained: props.editData.powerGained
+            };
+        }
+    });
 </script>

@@ -51,8 +51,22 @@ const deleteTunning = async(req, res) => {
     }
 }
 
+const updateTunning = async(req, res) => {
+    try {
+        const { id } = req.params;
+        const data = req.body;
+
+        await db.collection('tunnings').doc(id).update(data);
+
+        res.status(200).json({ message: 'Tunning updated successfully!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to update tunning: ', error });
+    }
+}
+
 module.exports = {
     addTunning,
     getTunningListByUserId,
-    deleteTunning
+    deleteTunning,
+    updateTunning
 };
