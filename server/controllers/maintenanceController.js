@@ -44,9 +44,9 @@ const deleteMaintenance = async(req, res) => {
 
         await db.collection('maintenances').doc(id).delete();
 
-        res.status(200).json({ message: 'The maintenance has been successfully deleted!'});
+        res.status(200).json({ message: 'Maintenance deleted successfully!'});
     } catch (error) {
-        res.status(500).json({ message: 'Could not delete maintenance: ', error });
+        res.status(500).json({ message: 'Failed delete maintenance: ', error });
     }
 }
 

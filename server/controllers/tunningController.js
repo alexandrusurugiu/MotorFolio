@@ -45,7 +45,7 @@ const deleteTunning = async(req, res) => {
 
         await db.collection('tunnings').doc(id).delete();
 
-        res.status(200).json({ message: 'The tunning has been successfully deleted!'});
+        res.status(200).json({ message: 'Tunning deleted successfully!'});
     } catch (error) {
         res.status(500).json({ message: 'Failed to delete the tunning: ', error });
     }
