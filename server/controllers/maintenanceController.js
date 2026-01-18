@@ -38,7 +38,20 @@ const getMaintenanceListByUserId = async(req, res) => {
     }
 };
 
+const deleteMaintenance = async(req, res) => {
+    try {
+        const { id } = req.params;
+
+        await db.collection('maintenances').doc(id).delete();
+
+        res.status(200).json({ message: 'The maintenance has been successfully deleted!'});
+    } catch (error) {
+        res.status(500).json({ message: 'Could not delete maintenance: ', error });
+    }
+}
+
 module.exports = { 
-    addMaintenance, 
-    getMaintenanceListByUserId 
+    addMaintenance,
+    getMaintenanceListByUserId,
+    deleteMaintenance
 };

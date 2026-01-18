@@ -88,7 +88,14 @@
                             <div v-if="maintenanceList.length === 0" class="text-center py-4 text-grey">There is no record of maintenance yet.</div>
 
                             <v-card v-else v-for="item in maintenanceList" :key="item.id" flat class="bg-blue-lighten-5 rounded-lg pa-4 mb-4 history-item">
-                                <h3 class="text-h6 font-weight-bold text-blue-darken-4 mb-1"> {{ item.title }}</h3>
+                                <div class="d-flex justify-space-between align-start mb-2">
+                                    <h3 class="text-h6 font-weight-bold text-blue-darken-4 mb-1"> {{ item.title }}</h3>
+
+                                    <v-btn icon variant="text" density="compact" color="red-lighten-2" @click="deleteMaintenance(item.id)">
+                                        <v-icon icon="mdi-delete-outline"></v-icon>
+                                    </v-btn>
+                                </div>
+                                
                                 <p class="text-body-2 text-blue-darken-2 mb-3">{{ item.description }}</p>
                                 
                                 <div class="d-flex flex-wrap align-center">
@@ -155,6 +162,20 @@ const fetchMaintenanceList = async () => {
         maintenanceList.value = [];
     }
 };
+
+const deleteMaintenance = async(id) => {
+    if (!confirm("Are you sure you want to delete the selected maintenance?")) {
+        return;
+    }
+
+    try {
+        await axios.delete(`http://localhost:5000/server/maintenance/delete/${id}`);
+        maintenanceList.value = maintenanceList.value.filter(item => item.id !== id);
+    } catch (error) {
+        console.error('Error when trying to delete maintenance: ', error.message);
+        alert('Could not delete selected maintenance!');
+    }
+}
 
 onMounted(() => {
     fetchMaintenanceList();
