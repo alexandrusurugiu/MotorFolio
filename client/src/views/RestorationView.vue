@@ -70,7 +70,7 @@
                                 rounded="xl" 
                                 class="elevation-6 mt-4"
                                 prepend-icon="mdi-plus"
-                                @click="showRestorationDialog = true"
+                                @click="openAddDialog"
                             >
                                 Add phase
                             </v-btn>
@@ -79,7 +79,7 @@
                 </v-row>
 
                 <v-dialog v-model="showRestorationDialog" max-width="600">
-                    <AddRestorationForm @close="showRestorationDialog = false" @refresh="fetchRestorationList"></AddRestorationForm>
+                    <AddRestorationForm :edit-data="selectedRestoration" :key="selectedRestoration ? selectedRestoration.id : 'new'" @close="showRestorationDialog = false" @refresh="fetchRestorationList"></AddRestorationForm>
                 </v-dialog>
 
                 <v-row class="w-100 mt-6">
@@ -129,9 +129,15 @@
                                                 {{ item.status === 'completed' ? 'Finished' : 'Unfinished' }}
                                             </v-chip>
 
-                                            <v-btn icon variant="text" density="compact" color="red-lighten-2" @click="deleteRestoration(item.id)">
-                                                <v-icon icon="mdi-delete-outline"></v-icon>
-                                            </v-btn>
+                                            <div>
+                                                <v-btn icon variant="text" density="compact" color="teal-darken-1" class="pb-2 mr-3" @click="editRestoration(item)">
+                                                    <v-icon icon="mdi-pencil-outline"></v-icon>
+                                                </v-btn>
+
+                                                <v-btn icon variant="text" density="compact" color="red-lighten-2" class="pb-2" @click="deleteRestoration(item.id)">
+                                                    <v-icon icon="mdi-delete-outline"></v-icon>
+                                                </v-btn>
+                                            </div>
                                         </div>
 
                                         <h3 
@@ -178,6 +184,7 @@ import axios from 'axios';
 const showRestorationDialog = ref(false);
 const router = useRouter();
 const restorationList = ref([]);
+const selectedRestoration = ref(null);
 
 function goToMaintenancePage() {
     router.push('/maintenance');
@@ -256,6 +263,16 @@ async function toggleStageStatus(id) {
         }
     }
 };
+
+const openAddDialog = () => {
+    selectedRestoration.value = null;
+    showRestorationDialog.value = true;
+}
+
+const editRestoration = (item) => {
+    selectedRestoration.value = item;
+    showRestorationDialog.value = true;
+}
 </script>
 
 <style scoped>

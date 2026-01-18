@@ -49,8 +49,22 @@ const deleteRestoration = async(req, res) => {
     }
 }
 
+const updateRestoration = async(req, res) => {
+    try {
+        const { id } = req.params;
+        const data = req.body;
+
+        await db.collection('restorations').doc(id).update(data);
+
+        res.status(200).json({ message: 'Restoration update successfully!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to update restoration: ', error });
+    }
+}
+
 module.exports = {
     addRestoration,
     getRestorationListByUserId,
-    deleteRestoration
+    deleteRestoration,
+    updateRestoration
 }
