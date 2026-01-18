@@ -6,7 +6,7 @@ const authRegister = [
     body('password').trim().isLength({ min: 6 }).withMessage('The password must be at least 6 characters long!'),
     body('confirmPassword').custom((value, { req }) => {
         if (value !== req.body.password) {
-            throw new Error('The password do not match!');
+            throw new Error('The passwords do not match!');
         }
 
         return true;
