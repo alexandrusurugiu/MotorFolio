@@ -79,7 +79,7 @@
                 </v-row>
 
                 <v-dialog v-model="showRestorationDialog" max-width="600">
-                    <AddRestorationForm @close="showRestorationDialog = false"></AddRestorationForm>
+                    <AddRestorationForm @close="showRestorationDialog = false" @refresh="fetchRestorationList"></AddRestorationForm>
                 </v-dialog>
 
                 <v-row class="w-100 mt-6">
@@ -96,12 +96,20 @@
                                     v-for="item in restorationList" 
                                     :key="item.id"
                                     :dot-color="item.status === 'completed' ? 'green-accent-4' : 'purple-lighten-4'"
-                                    :icon="item.status === 'completed' ? 'mdi-check' : 'mdi-circle-outline'"
                                     size="small"
                                     fill-dot
-                                    @click="toggleStageStatus(item.id)"
-                                    style="cursor: pointer;"
                                 >
+
+                                    <template v-slot:icon>
+                                        <div @click.stop="toggleStageStatus(item.id)" class="d-flex align-center justify-center w-100 h-100" style="cursor: pointer;">
+                                            <v-icon
+                                                :icon="item.status === 'completed' ? 'mdi-check' : 'mdi:circle-outline'"
+                                                size="small"
+                                                color="white"
+                                            ></v-icon>
+                                        </div>
+                                    </template>
+
                                     <v-card 
                                         flat 
                                         class="rounded-lg pa-4 mb-2 w-100"
@@ -109,29 +117,19 @@
                                         style="border: 1px solid transparent;"
                                     >
                                         <div class="d-flex justify-space-between align-start mb-2">
-                                            <div class="d-flex flex-wrap gap-2">
-                                                <v-chip 
-                                                    size="small" 
-                                                    :color="item.status === 'completed' ? 'purple-lighten-4' : 'purple-lighten-4'" 
-                                                    variant="flat" 
-                                                    class="mr-2 font-weight-bold text-purple-darken-2"
+                                            <v-chip 
+                                                size="small" 
+                                                :color="item.status === 'completed' ? 'green-lighten-4' : 'purple-lighten-4'" 
+                                                variant="flat" 
+                                                class="mr-2 font-weight-bold text-purple-darken-2"
+                                                :class="item.status === 'completed' ? 'text-green-darken-3' : 'text-purple-darken-2'"
                                                 >
-                                                    {{ item.stage }}
-                                                </v-chip>
 
-                                                <v-chip 
-                                                    v-if="item.status === 'completed'"
-                                                    size="small" 
-                                                    color="green-lighten-4" 
-                                                    variant="flat" 
-                                                    class="font-weight-bold text-green-darken-3"
-                                                >
-                                                    <v-icon start icon="mdi-check" size="small"></v-icon>
-                                                    Finalized
-                                                </v-chip>
-                                            </div>
+                                            <v-icon start :icon="item.status === 'completed' ? 'mdi-check-all' : 'mdi-check-outline'" size="small"></v-icon>
+                                                {{ item.status === 'completed' ? 'Finished' : 'Unfinished' }}
+                                            </v-chip>
 
-                                            <v-btn icon variant="text" density="compact" color="red-lighten-2">
+                                            <v-btn icon variant="text" density="compact" color="red-lighten-2" @click="deleteRestoration(item.id)">
                                                 <v-icon icon="mdi-delete-outline"></v-icon>
                                             </v-btn>
                                         </div>
@@ -156,7 +154,7 @@
                                                 class="text-caption font-weight-medium"
                                                 :class="item.status === 'completed' ? 'text-green-darken-2' : 'text-purple-darken-2'"
                                             >
-                                                {{ item.date }}
+                                                {{ new Date(item.date).toLocaleDateString() }}
                                             </span>
                                         </div>
                                     </v-card>
@@ -209,6 +207,20 @@ const fetchRestorationList = async () => {
     } catch (error) {
         console.error('Error when trying to fetch restoration list: ', error.message);
         restorationList.value = [];
+    }
+};
+
+const deleteRestoration = async(id) => {
+    try {
+        if(!confirm('Are you sure you want to delete the selected restoration?')) {
+            return;
+        }
+
+        await axios.delete(`http://localhost:5000/server/restoration/delete/${id}`);
+        restorationList.value = restorationList.value.filter(item => item.id !== id);
+    } catch (error) {
+        console.error('Error when trying to delete restoration: ', error.message);
+        alert('Could not delete selected restoration!');  
     }
 };
 

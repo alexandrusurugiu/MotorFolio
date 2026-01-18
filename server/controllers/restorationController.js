@@ -37,7 +37,20 @@ const getRestorationListByUserId = async(req, res) => {
     }
 };
 
+const deleteRestoration = async(req, res) => {
+    try {
+        const { id } = req.params;
+
+        await db.collection('restorations').doc(id).delete();
+
+        res.status(200).json({ message: 'Restoration deleted successfully!' });
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to delete restoration: ', error });
+    }
+}
+
 module.exports = {
     addRestoration,
-    getRestorationListByUserId
+    getRestorationListByUserId,
+    deleteRestoration
 }
