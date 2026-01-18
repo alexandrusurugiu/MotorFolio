@@ -39,7 +39,20 @@ const getTunningListByUserId = async(req, res) => {
     }
 };
 
+const deleteTunning = async(req, res) => {
+    try {
+        const { id } = req.params;
+
+        await db.collection('tunnings').doc(id).delete();
+
+        res.status(200).json({ message: 'The tunning has been successfully deleted!'});
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to delete the tunning: ', error });
+    }
+}
+
 module.exports = {
     addTunning,
-    getTunningListByUserId
+    getTunningListByUserId,
+    deleteTunning
 };

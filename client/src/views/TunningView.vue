@@ -99,10 +99,17 @@
                             <div v-if="tunningList.length === 0" class="text-center py-4 text-grey">There is no record of tunning yet.</div>
 
                             <v-card v-else v-for="item in tunningList" :key="item.id" flat class="bg-red-lighten-5 rounded-xl pa-5 mb-4 mod-item border-red-thin">
-                                <v-chip color="red-accent-3" class="mb-3 font-weight-bold px-4" size="small" label>
-                                    <v-icon start :icon="getCategoryIcon(item.category)" size="small"></v-icon>
-                                    {{ item.category }}
-                                </v-chip>
+                                
+                                <div class="d-flex justify-space-between align-start mb-2">
+                                    <v-chip color="red-accent-3" class="mb-3 font-weight-bold px-4" size="small" label>
+                                        <v-icon start :icon="getCategoryIcon(item.category)" size="small"></v-icon>
+                                        {{ item.category }}
+                                    </v-chip>
+
+                                    <v-btn icon variant="text" density="compact" color="red-lighten-2" class="pb-2" @click="deleteTunning(item.id)">
+                                        <v-icon icon="mdi-delete-outline"></v-icon>
+                                    </v-btn>
+                                </div>
 
                                 <h3 class="text-h6 font-weight-bold text-red-darken-4 mb-1">{{ item.title }}</h3>
 
@@ -120,6 +127,7 @@
                                     <div class="d-flex align-center mb-2">
                                         <v-icon icon="mdi-flash" size="small" color="purple-darken-2" class="mr-2"></v-icon>
                                         <span class="text-caption text-purple-darken-3 font-weight-bold">+{{ item.powerGained }} HP</span>
+                                    
                                     </div>
                                 </div>
                             </v-card>
@@ -180,6 +188,20 @@ const fetchTunningList = async () => {
         tunningList.value = [];
     }
 };
+
+const deleteTunning = async(id) => {
+    try {
+        if (!confirm('Are you sure you want to delete the selected tunning?')) {
+            return;
+        }
+
+        await axios.delete(`http://localhost:5000/server/tunning/delete/${id}`);
+        tunningList.value = tunningList.value.filter(item => item.id !== id);
+    } catch (error) {
+        console.error('Error when trying to delete tunning: ', error.message);
+        alert('Could not delete selected tunning!');
+    }
+}
 
 onMounted(() => {
     fetchTunningList();
