@@ -81,9 +81,21 @@
                     <v-col cols="12">
                         <v-card class="rounded-xl elevation-6 pa-4">
                             
-                            <v-card-title class="text-h6 font-weight-bold mb-4 pl-2">
+                            <v-card-title class="text-h6 font-weight-bold mb-3 pl-2">
                                 Maintenance History
                             </v-card-title>
+
+                            <v-btn
+                                color="red-darken-1"
+                                class="mb-3"
+                                variant="tonal"
+                                size="small"
+                                prepend-icon="mdi-file-pdf-box"
+                                @click="generatePDF"
+                                :disabled="maintenanceList.length === 0"
+                            >
+                                Export
+                            </v-btn>
 
                             <div v-if="maintenanceList.length === 0" class="text-center py-4 text-grey">There is no record of maintenance yet.</div>
 
@@ -110,12 +122,12 @@
                                         <span class="text-body-2 text-blue font-weight-medium">{{ new Date(item.date).toLocaleDateString() }}</span>
                                     </div>
                                     <div class="d-flex align-center mr-6">
-                                        <v-icon icon="mdi-currency-usd" size="small" color="green" class="mr-2"></v-icon>
-                                        <span class="text-body-2 text-green font-weight-bold">{{ item.price }} RON</span>
+                                        <v-icon icon="mdi-cash" size="small" color="green-darken-3" class="mr-2"></v-icon>
+                                        <span class="text-caption text-green-darken-3 font-weight-bold">{{ item.price }} RON</span>
                                     </div>
                                     <div class="d-flex align-center">
                                         <v-icon icon="mdi-speedometer" size="small" color="purple" class="mr-2"></v-icon>
-                                        <span class="text-body-2 text-purple font-weight-medium">{{ item.mileage }} km</span>
+                                        <span class="text-caption text-purple font-weight-bold">{{ item.mileage }} KM</span>
                                     </div>
                                 </div>
                             </v-card>
@@ -133,6 +145,8 @@ import { useRouter } from 'vue-router';
 import { ref, onMounted, computed } from 'vue';
 import AppHeader from '@/components/forms/AppHeader.vue';
 import axios from 'axios';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const showMaintenanceDialog = ref(false);
 const router = useRouter();
@@ -202,6 +216,40 @@ const openAddDialog = () => {
 const editMaintenance = (item) => {
     selectedMaintenance.value = item;
     showMaintenanceDialog.value = true;
+}
+
+const generatePDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Maintenance history', pageWidth / 2, 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`(${new Date().toLocaleDateString()})`, pageWidth / 2, 25, { align: 'center' });
+
+    const tableData = maintenanceList.value.map(item => [
+        new Date(item.date).toLocaleDateString(),
+        item.title,
+        `${item.price} RON`,
+        `${item.mileage} km`,
+        item.description || '-' 
+    ]);
+
+    autoTable(doc, {
+        head: [['Date', 'Service Title', 'Price', 'Mileage', 'Notes']],
+        body: tableData,
+        startY: 40,
+        theme: 'grid',
+        headStyles: { fillColor: [41, 98, 255] },
+        styles: { fontSize: 10, cellPadding: 3 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY || 40;
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text(`Total investment: ${totalCost.value} RON`, 14, finalY + 10);
+    doc.save('maintenance_report.pdf');
 }
 </script>
 

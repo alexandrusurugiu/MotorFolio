@@ -30,8 +30,8 @@
                             <div class="icon-circle bg-purple-accent-3 mb-4">
                                 <v-icon icon="mdi-star-four-points" size="32" color="white"></v-icon>
                             </div>
-                            <h2 class="text-h5 font-weight-bold text-purple-darken-3">Restoration</h2>
-                            <v-progress-linear model-value="100" color="purple-accent-4" height="6" rounded class="mt-4 w-50"></v-progress-linear>
+                            <h2 class="text-h5 font-weight-bold text-purple-accent-3">Restoration</h2>
+                            <v-progress-linear model-value="100" color="purple-accent-3" height="6" rounded class="mt-4 w-50"></v-progress-linear>
                         </v-card>
                     </v-col>
                 </v-row>
@@ -86,9 +86,21 @@
                     <v-col cols="12">
                         <v-card class="rounded-xl elevation-6 pa-6 bg-white">
                             
-                            <h2 class="text-h6 font-weight-bold mb-6 text-grey-darken-3 pl-1">
+                            <v-card-title class="text-h6 font-weight-bold mb-3 pl-2">
                                 Restoration Stages
-                            </h2>
+                            </v-card-title>
+
+                            <v-btn
+                                color="red-darken-1"
+                                class="mb-3"
+                                variant="tonal"
+                                size="small"
+                                prepend-icon="mdi-file-pdf-box"
+                                @click="generatePDF"
+                                :disabled="restorationList.length === 0"
+                            >
+                                Export
+                            </v-btn>
 
                             <v-timeline density="compact" side="end" align="start" truncate-line="both">
                                 
@@ -155,13 +167,15 @@
                                         </p>
                                         
                                         <div v-if="item.date" class="d-flex align-center">
-                                            <v-icon icon="mdi-calendar" size="small" :color="item.status === 'completed' ? 'green' : 'purple'" class="mr-2"></v-icon>
-                                            <span 
-                                                class="text-caption font-weight-medium"
-                                                :class="item.status === 'completed' ? 'text-green-darken-2' : 'text-purple-darken-2'"
-                                            >
-                                                {{ new Date(item.date).toLocaleDateString() }}
-                                            </span>
+                                            <div class="d-flex align-center mr-6 mb-2">
+                                                <v-icon icon="mdi-calendar" size="small" :color="item.status === 'completed' ? 'green' : 'purple'" class="mr-2"></v-icon>
+                                                <span  class="text-caption font-weight-medium" :class="item.status === 'completed' ? 'text-green-darken-2' : 'text-purple-darken-2'">{{ new Date(item.date).toLocaleDateString() }}</span>
+                                            </div>
+
+                                            <div class="d-flex align-cente mb-2">                                            
+                                                <v-icon icon="mdi-cash" size="small" color="green-darken-3" class="mr-2"></v-icon>
+                                                <span class="text-caption font-weight-bold text-green-darken-3">{{ item.price }} RON</span>
+                                            </div>
                                         </div>
                                     </v-card>
                                 </v-timeline-item>
@@ -180,6 +194,8 @@ import { useRouter } from 'vue-router';
 import AddRestorationForm from '@/components/forms/AddRestorationForm.vue';
 import AppHeader from '@/components/forms/AppHeader.vue';
 import axios from 'axios';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const showRestorationDialog = ref(false);
 const router = useRouter();
@@ -205,7 +221,10 @@ const fetchRestorationList = async () => {
         const response = await axios.get(`http://localhost:5000/server/restoration/${user.id}`);
 
         if (Array.isArray(response.data)) {
-            restorationList.value = response.data;
+            restorationList.value = response.data.map(item => ({
+                ...item,
+                originalDate: item.date
+            }));
             restorationList.value.sort((a, b) => new Date(b.date) - new Date(a.date));
         } else {
             console.error('Invalid data format, expected an array!');
@@ -259,7 +278,7 @@ async function toggleStageStatus(id) {
         if (newStatus === 'completed') {
             stage.date = new Date().toLocaleDateString();
         } else {
-            stage.date = null;
+            stage.date = stage.originalDate;
         }
     }
 };
@@ -272,6 +291,44 @@ const openAddDialog = () => {
 const editRestoration = (item) => {
     selectedRestoration.value = item;
     showRestorationDialog.value = true;
+}
+
+const totalCost = computed(() => {
+    return restorationList.value.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
+});
+
+const generatePDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Restoration history', pageWidth / 2, 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`(${new Date().toLocaleDateString()})`, pageWidth / 2, 25, { align: 'center' });
+
+    const tableData = restorationList.value.map(item => [
+        new Date(item.date).toLocaleDateString(),
+        item.title,
+        `${item.price} RON`,
+        item.description || '-',
+        item.status
+    ]);
+
+    autoTable(doc, {
+        head: [['Date', 'Restoration Title', 'Cost', 'Notes', 'Status']],
+        body: tableData,
+        startY: 40,
+        theme: 'grid',
+        headStyles: { fillColor: [213, 0, 249] },
+        styles: { fontSize: 10, cellPadding: 3 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY || 40;
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text(`Total investment: ${totalCost.value} RON`, 14, finalY + 10);
+    doc.save('restoration_report.pdf');
 }
 </script>
 

@@ -90,18 +90,30 @@
 
                 <v-row class="w-100 mt-6">
                     <v-col cols="12">
-                        <v-card class="rounded-xl elevation-6 pa-6 bg-white">
+                        <v-card class="rounded-xl elevation-6 pa-4 bg-white">
                             
-                            <h2 class="text-h6 font-weight-bold mb-6 text-grey-darken-3 pl-1">
-                                Modification List
-                            </h2>
+                            <v-card-title class="text-h6 font-weight-bold mb-3 pl-2">
+                                Tunning History
+                            </v-card-title>
+
+                            <v-btn
+                                color="red-darken-1"
+                                class="mb-3"
+                                variant="tonal"
+                                size="small"
+                                prepend-icon="mdi-file-pdf-box"
+                                @click="generatePDF"
+                                :disabled="tunningList.length === 0"
+                            >
+                                Export
+                            </v-btn>
 
                             <div v-if="tunningList.length === 0" class="text-center py-4 text-grey">There is no record of tunning yet.</div>
 
-                            <v-card v-else v-for="item in tunningList" :key="item.id" flat class="bg-red-lighten-5 rounded-xl pa-5 mb-4 mod-item border-red-thin">
+                            <v-card v-else v-for="item in tunningList" :key="item.id" flat class="bg-orange-lighten-5 rounded-xl pa-5 mb-4 mod-item border-orange-thin">
                                 
                                 <div class="d-flex justify-space-between align-start mb-2">
-                                    <v-chip color="red-accent-3" class="mb-3 font-weight-bold px-4" size="small" label>
+                                    <v-chip color="orange-accent-3" class="mb-3 font-weight-bold px-4" size="small" label>
                                         <v-icon start :icon="getCategoryIcon(item.category)" size="small"></v-icon>
                                         {{ item.category }}
                                     </v-chip>
@@ -118,23 +130,22 @@
                                     
                                 </div>
 
-                                <h3 class="text-h6 font-weight-bold text-red-darken-4 mb-1">{{ item.title }}</h3>
+                                <h3 class="text-h6 font-weight-bold text-orange-darken-4 mb-1">{{ item.title }}</h3>
 
-                                <p class="text-body-2 text-red-darken-3 mb-4 opacity-90">{{ item.description }}</p>
+                                <p class="text-body-2 text-orange-darken-3 mb-4 opacity-90">{{ item.description }}</p>
                                 
                                 <div class="d-flex flex-wrap align-center">
                                     <div class="d-flex align-center mr-6 mb-2">
-                                        <v-icon icon="mdi-calendar" size="small" color="red-darken-2" class="mr-2"></v-icon>
-                                        <span class="text-caption text-red-darken-4 font-weight-medium">{{ new Date(item.date).toLocaleDateString() }}</span>
+                                        <v-icon icon="mdi-calendar" size="small" color="orange-darken-2" class="mr-2"></v-icon>
+                                        <span class="text-caption text-orange-darken-4 font-weight-medium">{{ new Date(item.date).toLocaleDateString() }}</span>
                                     </div>
                                     <div class="d-flex align-center mr-6 mb-2">
                                         <v-icon icon="mdi-cash" size="small" color="green-darken-2" class="mr-2"></v-icon>
                                         <span class="text-caption text-green-darken-3 font-weight-bold">{{ item.price }} RON</span>
                                     </div>
                                     <div class="d-flex align-center mb-2">
-                                        <v-icon icon="mdi-flash" size="small" color="purple-darken-2" class="mr-2"></v-icon>
-                                        <span class="text-caption text-purple-darken-3 font-weight-bold">+{{ item.powerGained }} HP</span>
-                                    
+                                        <v-icon icon="mdi-flash" size="small" color="black" class="mr-2"></v-icon>
+                                        <span class="text-caption text-black font-weight-bold">+{{ item.powerGained }} HP</span>
                                     </div>
                                 </div>
                             </v-card>
@@ -152,6 +163,8 @@ import AddTunningForm from '@/components/forms/AddTunningForm.vue';
 import { useRouter } from 'vue-router';
 import AppHeader from '@/components/forms/AppHeader.vue';
 import axios from 'axios';
+import jsPDF from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const showTunningDialog = ref(false);
 const router = useRouter();
@@ -237,6 +250,41 @@ const openAddDialog = () => {
 const editTunning = (item) => {
     selectedTunning.value = item;
     showTunningDialog.value = true;
+}
+
+const generatePDF = () => {
+    const doc = new jsPDF();
+    const pageWidth = doc.internal.pageSize.getWidth();
+
+    doc.setFontSize(20);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Tunning history', pageWidth / 2, 20, { align: 'center' });
+    doc.setFontSize(10);
+    doc.text(`(${new Date().toLocaleDateString()})`, pageWidth / 2, 25, { align: 'center' });
+
+    const tableData = tunningList.value.map(item => [
+        new Date(item.date).toLocaleDateString(),
+        item.title,
+        `${item.price} RON`,
+        item.category,
+        `+${item.powerGained} HP`,
+        item.description || '-'
+    ]);
+
+    autoTable(doc, {
+        head: [['Date', 'Mod Title', 'Price', 'Category', 'Power Gained', 'Notes']],
+        body: tableData,
+        startY: 40,
+        theme: 'grid',
+        headStyles: { fillColor: [251, 140, 0] },
+        styles: { fontSize: 10, cellPadding: 3 }
+    });
+
+    const finalY = doc.lastAutoTable.finalY || 40;
+    doc.setFontSize(12);
+    doc.setTextColor(0);
+    doc.text(`Total investment: ${totalInvestment.value} RON`, 14, finalY + 10);
+    doc.save('tunning_report.pdf');
 }
 </script>
 
