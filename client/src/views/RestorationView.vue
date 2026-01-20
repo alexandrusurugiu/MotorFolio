@@ -84,28 +84,41 @@
 
                 <v-row class="w-100 mt-6">
                     <v-col cols="12">
-                        <v-card class="rounded-xl elevation-6 pa-6 bg-white">
-                            
-                            <v-card-title class="text-h6 font-weight-bold mb-3 pl-2">
-                                Restoration Stages
-                            </v-card-title>
+                        <v-card class="rounded-xl elevation-6 pa-4 bg-white">
+                            <div class="d-flex justify-space-between align-center pl-2 pr-2">
+                                <v-card-title class="text-h6 font-weight-bold mb-3 pl-2">
+                                    Restoration Stages
+                                </v-card-title>
 
-                            <v-btn
-                                color="red-darken-1"
-                                class="mb-3"
-                                variant="tonal"
-                                size="small"
-                                prepend-icon="mdi-file-pdf-box"
-                                @click="generatePDF"
-                                :disabled="restorationList.length === 0"
-                            >
-                                Export
-                            </v-btn>
+                                <v-btn
+                                    color="red-darken-1"
+                                    class="mb-3"
+                                    variant="tonal"
+                                    size="small"
+                                    prepend-icon="mdi-file-pdf-box"
+                                    @click="generatePDF"
+                                    :disabled="restorationList.length === 0"
+                                >
+                                    Export
+                                </v-btn>
+                            </div>
+
+                            <v-text-field
+                                v-model="searchQuery"
+                                prepend-inner-icon="mdi-magnify"
+                                label="Search history"
+                                variant="solo-filled"
+                                flat
+                                hide-details
+                                density="compact"
+                                bg-color="grey-lighten-4"
+                                class="mb-6 rounded-lg"
+                            ></v-text-field>
 
                             <v-timeline density="compact" side="end" align="start" truncate-line="both">
                                 
                                 <v-timeline-item 
-                                    v-for="item in restorationList" 
+                                    v-for="item in filteredList" 
                                     :key="item.id"
                                     :dot-color="item.status === 'completed' ? 'green-accent-4' : 'purple-lighten-4'"
                                     size="small"
@@ -201,6 +214,7 @@ const showRestorationDialog = ref(false);
 const router = useRouter();
 const restorationList = ref([]);
 const selectedRestoration = ref(null);
+const searchQuery = ref('');
 
 function goToMaintenancePage() {
     router.push('/maintenance');
@@ -330,6 +344,15 @@ const generatePDF = () => {
     doc.text(`Total investment: ${totalCost.value} RON`, 14, finalY + 10);
     doc.save('restoration_report.pdf');
 }
+
+const filteredList = computed(() => {
+    if (!searchQuery.value) {
+        return restorationList.value;
+    }
+
+    return restorationList.value.filter(item => item.title.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
+        item.description && item.description.toLowerCase().includes(searchQuery.value.toLowerCase()));
+});
 </script>
 
 <style scoped>

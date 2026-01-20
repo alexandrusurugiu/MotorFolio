@@ -91,26 +91,39 @@
                 <v-row class="w-100 mt-6">
                     <v-col cols="12">
                         <v-card class="rounded-xl elevation-6 pa-4 bg-white">
-                            
-                            <v-card-title class="text-h6 font-weight-bold mb-3 pl-2">
-                                Tunning History
-                            </v-card-title>
+                            <div class="d-flex justify-space-between align-center pl-2 pr-2">
+                                <v-card-title class="text-h6 font-weight-bold mb-3 pl-2">
+                                    Tunning History
+                                </v-card-title>
 
-                            <v-btn
-                                color="red-darken-1"
-                                class="mb-3"
-                                variant="tonal"
-                                size="small"
-                                prepend-icon="mdi-file-pdf-box"
-                                @click="generatePDF"
-                                :disabled="tunningList.length === 0"
-                            >
-                                Export
-                            </v-btn>
+                                <v-btn
+                                    color="red-darken-1"
+                                    class="mb-3"
+                                    variant="tonal"
+                                    size="small"
+                                    prepend-icon="mdi-file-pdf-box"
+                                    @click="generatePDF"
+                                    :disabled="tunningList.length === 0"
+                                >
+                                    Export
+                                </v-btn>
+                            </div>
+
+                            <v-text-field
+                                v-model="searchQuery"
+                                prepend-inner-icon="mdi-magnify"
+                                label="Search history"
+                                variant="solo-filled"
+                                flat
+                                hide-details
+                                density="compact"
+                                bg-color="grey-lighten-4"
+                                class="mb-6 rounded-lg" 
+                            ></v-text-field>
 
                             <div v-if="tunningList.length === 0" class="text-center py-4 text-grey">There is no record of tunning yet.</div>
 
-                            <v-card v-else v-for="item in tunningList" :key="item.id" flat class="bg-orange-lighten-5 rounded-xl pa-5 mb-4 mod-item border-orange-thin">
+                            <v-card v-else v-for="item in filteredList" :key="item.id" flat class="bg-orange-lighten-5 rounded-xl pa-5 mb-4 mod-item border-orange-thin">
                                 
                                 <div class="d-flex justify-space-between align-start mb-2">
                                     <v-chip color="orange-accent-3" class="mb-3 font-weight-bold px-4" size="small" label>
@@ -170,6 +183,7 @@ const showTunningDialog = ref(false);
 const router = useRouter();
 const tunningList = ref([]);
 const selectedTunning = ref(null);
+const searchQuery = ref('');
 const categoryIcons = {
     'Engine': 'mdi-engine',
     'Suspension': 'mdi-arrow-expand-vertical',
@@ -286,6 +300,15 @@ const generatePDF = () => {
     doc.text(`Total investment: ${totalInvestment.value} RON`, 14, finalY + 10);
     doc.save('tunning_report.pdf');
 }
+
+const filteredList = computed(() => {
+    if (!searchQuery.value) {
+        return tunningList.value;
+    }
+
+    return tunningList.value.filter(item => item.title.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
+        item.description && item.description.toLowerCase().includes(searchQuery.value.toLowerCase()));
+});
 </script>
 
 
