@@ -79,34 +79,34 @@ const login = async (req, res) => {
     }
 };
 
-const googleLogin = async(req, res) => {
+const verifyUser = async(req, res) => {
     const { token } = req.body;
 
     try {
         const decodedToken = await admin.auth().verifyIdToken(token);
-        const { email, name } = decodedToken;
+        const { email, name, uid } = decodedToken;
         const query = await db.collection('users').where('email', '==', email).get();
 
         let userId;
         let userData;
 
         if (query.empty) {
-            const newUser = await db.collection('users').add({
-                name: name,
-                email: email,
-                password: null,
-                createdAt: new Date().toISOString()
-            });
+           const newUser = await db.collection('users').add({
+            name: name || 'User',
+            id: uid,
+            email: email,
+            createdAt: new Date().toISOString()
+           });
 
-            userId = newUser.id;
-            userData = { name, email };
+           userId = newUser.id;
+           userData = { name, email };
         } else {
             const userDoc = query.docs[0];
             userId = userDoc.id;
             userData = userDoc.data();
         }
 
-        const tokenPayload = { id: userId, email: email }
+        const tokenPayload = { id: userId, email: email };
         const authToken = generateToken(tokenPayload);
 
         res.json({
@@ -118,13 +118,13 @@ const googleLogin = async(req, res) => {
             }
         });
     } catch (error) {
-        console.error("Error: ", error);
-        res.status(401).json({ message: 'Invalid Google token!' });
+        console.error('Error verifying token: ', error);
+        res.status(401).json({ message: 'Invalid Firebase token!' });
     }
 }
 
 module.exports = {
     register, 
     login,
-    googleLogin
+    verifyUser
 };

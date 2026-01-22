@@ -49,7 +49,12 @@
                         </v-expand-transition>
                         
                         <v-text-field label="Email" v-model="formData.email" prepend-inner-icon="mdi-email-outline" variant="outlined"></v-text-field>
+                        
                         <v-text-field label="Password" v-model="formData.password" type="password" prepend-inner-icon="mdi-lock-outline" variant="outlined"></v-text-field>
+                        <div class="d-flex justify-end mt-n3 mb-8">
+                            <span class="text-caption font-weight-bold text-grey-darken-1" style="cursor: pointer;" @click="showForgotPasswordDialog = true">Forgot password?</span>
+                        </div>
+ 
 
                         <v-expand-transition>
                             <v-text-field v-if="tab === 'register'" label="Confirm Password" v-model="formData.confirmPassword" type="password" prepend-inner-icon="mdi-lock-outline" variant="outlined"></v-text-field>
@@ -76,6 +81,40 @@
 
             </v-col>
         </v-row>
+
+        <v-dialog v-model="showForgotPasswordDialog" max-width="450">
+            <v-card class="rounded-xl pa-4 elevation-12">
+                <v-card-title class="text-h6 font-weight-bold">
+                    Reset password
+                </v-card-title>
+
+                <v-card-text>
+                    <p class="text-body-2 text-grey-darken-1 mb-4">
+                        Enter your email address where we can send you a link to reset your password.
+                    </p>
+
+                    <v-text-field 
+                        v-model="resetEmail" 
+                        label="Enter your email" 
+                        prepend-inner-icon="mdi-email-outline" 
+                        variant="outlined" 
+                        density="comfortable" 
+                        autofocus 
+                        @keyup.enter="handlePasswordReset"  
+                    ></v-text-field>
+                </v-card-text>
+
+                <v-card-actions class="justify-end">
+                        <v-btn variant="text" color="grey-darken-4" @click="showForgotPasswordDialog = false">
+                            Cancel
+                        </v-btn>
+
+                        <v-btn variant="flat" color="blue-darken-2" :loading="resetLoading" @click="handlePasswordReset">
+                            Send link
+                        </v-btn>
+                    </v-card-actions>
+            </v-card>
+        </v-dialog>
     </v-container>
 </template>
 
@@ -84,13 +123,17 @@
     import appLogo from '@/assets/app-logo.png';
     import { useRouter } from 'vue-router';
     import axios from 'axios';
-    import { signInWithPopup } from 'firebase/auth';
+    import { signInWithPopup, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile, createUserWithEmailAndPassword } from 'firebase/auth';
     import { auth, googleProvider } from '@/firebaseConfig'
 
     const tab = ref('login');
     const router = useRouter();
     const loading = ref(false);
     const errorMessage = ref('');
+    const showForgotPasswordDialog = ref(false);
+    const resetEmail = ref('');
+    const resetLoading = ref(false);
+    const url = 'http://localhost:5000/server/auth';
 
     const formData = ref({
         name: '',
@@ -99,45 +142,61 @@
         confirmPassword: ''
     });
 
+    const processToken = async(firebaseToken) => {
+        const response = await axios.post(`${url}/verify-token`, {
+            token: firebaseToken
+        });
+
+        const { token, user } = response.data;
+        localStorage.setItem('token', token);
+        localStorage.setItem('user', JSON.stringify(user));
+
+        router.push('/maintenance');
+    }
+
     const handleSubmit = async() => {
         loading.value = true;
         errorMessage.value = '';
 
         try {
-            const url = 'http://localhost:5000/server/auth';
 
             if (tab.value === 'register') {
-                await axios.post(`${url}/register`, {
-                    name: formData.value.name,
-                    email: formData.value.email,
-                    password: formData.value.password,
-                    confirmPassword: formData.value.confirmPassword
+                if (formData.value.password !== formData.value.confirmPassword) {
+                    errorMessage.value = 'Passwords do not match!';
+                    loading.value = false;
+                    return;
+                }
+
+                const userCredential = await createUserWithEmailAndPassword(auth, formData.value.email, formData.value.password);
+                const firebaseUser = userCredential.user;
+
+                await updateProfile(firebaseUser, {
+                    displayName: formData.value.name
                 });
 
-                alert('registration successful! Please Log In!');
-                tab.value = 'login';
+                const token = await firebaseUser.getIdToken(true);
+
+                await processToken(token);
             } else {
-                const response = await axios.post(`${url}/login`, {
-                    email: formData.value.email,
-                    password: formData.value.password
-                });
-
-                const { token, user } = response.data;
-                localStorage.setItem('token', token);
-                localStorage.setItem('user', JSON.stringify(user));
-
-                router.push('/maintenance');
+                const userCredential = await signInWithEmailAndPassword(auth, formData.value.email, formData.value.password);
+                const firebaseToken = await userCredential.user.getIdToken();
+                await processToken(firebaseToken);
             } 
         } catch (error) {
-           if (error.response && error.response.data) {
+            console.error(error);
+            if (error.code === 'auth/email-already-in-use') {
+                errorMessage.value = 'This email is already registered!';
+            } else if (error.code === 'auth-invalid-credential' || error.code === 'auth/wrong-password') {
+                errorMessage.value = 'Invalid email or password!';
+            } else if (error.response && error.response.data) {
                 if (error.response.data.errors) {
                     errorMessage.value = error.response.data.errors[0].msg;
                 } else if (error.response.data.message) {
                     errorMessage.value = error.response.data.message;
                 }
-           } else {
+            } else {
                 errorMessage.value = 'An error occured. Please try again later!';
-           }
+            }
         } finally {
             loading.value = false;
         }
@@ -151,16 +210,7 @@
             const result = await signInWithPopup(auth, googleProvider);
             const user = result.user;
             const token = await user.getIdToken();
-
-            const response = await axios.post('http://localhost:5000/server/auth/google-login', {
-                token: token
-            });
-
-            const { token: appToken, user: appUser } = response.data;
-            localStorage.setItem('token', appToken);
-            localStorage.setItem('user', JSON.stringify(appUser));
-
-            router.push('/maintenance');
+            await processToken(token);
         } catch (error) {
             console.log(error);
                 
@@ -174,6 +224,34 @@
         }
     };
 
+    const handlePasswordReset = async () => {
+        if (!resetEmail.value) {
+            errorMessage.value = "Please enter your email address!";
+            return;
+        }
+
+        resetLoading.value = true;
+        errorMessage.value = '';
+
+        try {
+            await sendPasswordResetEmail(auth, resetEmail.value);
+
+            showForgotPasswordDialog.value = false;
+            resetEmail.value = '';
+            alert('Password reset email sent! Please check your inbox!');
+        } catch (error) {
+            console.error(error);
+            if (error.code === 'auth/user-not-found') {
+                errorMessage.value = 'No user found with this email!';
+            } else if (error.code === 'auth/invalid-email') {
+                errorMessage.value = "Invalid email address";
+            } else {
+                errorMessage.value = 'Failed to send the reset password form. Please try again!';
+            }
+        } finally {
+            resetLoading.value = false;
+        }
+    };
 </script>
 
 <style scoped>
