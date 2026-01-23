@@ -51,7 +51,7 @@
                         <v-text-field label="Email" v-model="formData.email" prepend-inner-icon="mdi-email-outline" variant="outlined"></v-text-field>
                         
                         <v-text-field label="Password" v-model="formData.password" type="password" prepend-inner-icon="mdi-lock-outline" variant="outlined"></v-text-field>
-                        <div class="d-flex justify-end mt-n3 mb-8">
+                        <div v-if="tab === 'login'" class="d-flex justify-end mt-n3 mb-8">
                             <span class="text-caption font-weight-bold text-grey-darken-1" style="cursor: pointer;" @click="showForgotPasswordDialog = true">Forgot password?</span>
                         </div>
  
