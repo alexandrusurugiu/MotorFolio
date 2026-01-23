@@ -103,17 +103,66 @@
                                 </v-btn>
                             </div>
 
-                            <v-text-field
-                                v-model="searchQuery"
-                                prepend-inner-icon="mdi-magnify"
-                                label="Search history"
-                                variant="solo-filled"
-                                flat
-                                hide-details
-                                density="compact"
-                                bg-color="grey-lighten-4"
-                                class="mb-6 rounded-lg"
-                            ></v-text-field>
+                            <div class="d-flex gap-4 mb-6 align-center">
+                                <v-text-field
+                                    v-model="searchQuery"
+                                    prepend-inner-icon="mdi-magnify"
+                                    label="Search history"
+                                    variant="solo-filled"
+                                    flat
+                                    hide-details
+                                    density="compact"
+                                    bg-color="grey-lighten-4"
+                                    class="rounded-lg flex-grow-1 mr-2"
+                                ></v-text-field>
+
+                                <v-menu location="bottom end" transition="scale-transition">
+                                    <template v-slot:activator="{ props }">
+                                        <v-btn v-bind="props" color="purple-darken-3" variant="tonal" height="49" class="rounded-lg px-4">
+                                            <v-icon :icon="sortDesc ? 'mdi-sort-ascending' : 'mdi-sort-descending'" class="mr-2"></v-icon>
+                                            {{ currentSortLabel }}
+                                            <v-icon icon="mdi-chevron-down" size="small" class="ml-1"></v-icon>
+                                        </v-btn>
+                                    </template>
+
+                                    <v-list class="rounded-lg elevation-4 py-2" width="200">
+                                        <v-list-subheader class="text-uppercase text-caption font-weight-bold">Sort by</v-list-subheader>
+                                    
+                                        <v-list-item
+                                            v-for="option in sortOptions"
+                                            :key="option.value"
+                                            :value="option.value"
+                                            @click="sortBy = option.value"
+                                            :active="sortBy === option.value"
+                                            color="purple"
+                                            rounded="lg"
+                                            class="mb-1 mx-2"
+                                        >
+                                            <template v-slot:prepend>
+                                                <v-icon :icon="option.icon" size="small" class="mr-2"></v-icon>
+                                            </template>
+
+                                            <v-list-item-title>{{ option.title }}</v-list-item-title>
+                                        
+                                            <template v-slot:append v-if="sortBy === option.value">
+                                                <v-icon icon="mdi-check" size="small" color="purple"></v-icon>
+                                            </template>
+                                        </v-list-item>
+
+                                        <v-divider class="my-2"></v-divider>
+
+                                        <v-list-subheader class="text-uppercase text-caption font-weight-bold">Direction</v-list-subheader>
+                                    
+                                        <v-list-item @click="sortDesc = !sortDesc" class="mx-2 rounded-lg">
+                                            <template v-slot:prepend>
+                                                <v-icon :icon="sortDesc ? 'mdi-sort-descending' : 'mdi-sort-ascending'"></v-icon>
+                                            </template>
+
+                                            <v-list-item-title>{{ sortDesc ? 'Ascending' : 'Descending' }}</v-list-item-title>
+                                        </v-list-item>
+                                    </v-list>
+                                </v-menu>
+                            </div>
 
                             <v-timeline density="compact" side="end" align="start" truncate-line="both">
                                 
@@ -202,233 +251,271 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import { useRouter } from 'vue-router';
-import AddRestorationForm from '@/components/forms/AddRestorationForm.vue';
-import AppHeader from '@/components/forms/AppHeader.vue';
-import axios from 'axios';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+    import { ref, onMounted, computed } from 'vue';
+    import { useRouter } from 'vue-router';
+    import AddRestorationForm from '@/components/forms/AddRestorationForm.vue';
+    import AppHeader from '@/components/forms/AppHeader.vue';
+    import axios from 'axios';
+    import jsPDF from 'jspdf';
+    import autoTable from 'jspdf-autotable';
 
-const showRestorationDialog = ref(false);
-const router = useRouter();
-const restorationList = ref([]);
-const selectedRestoration = ref(null);
-const searchQuery = ref('');
+    const showRestorationDialog = ref(false);
+    const router = useRouter();
+    const restorationList = ref([]);
+    const selectedRestoration = ref(null);
+    const searchQuery = ref('');
+    const sortBy = ref('date');
+    const sortDesc = ref(true);
+    const sortOptions = [
+        { title: 'Date', value: 'date', icon: 'mdi-calendar' },
+        { title: 'Price', value: 'price', icon: 'mdi-cash' },
+        { title: 'Status', value: 'status', icon: 'mdi-check'}
+    ];
 
-function goToMaintenancePage() {
-    router.push('/maintenance');
-}
+    function goToMaintenancePage() {
+        router.push('/maintenance');
+    }
 
-function goToTunningPage() {
-    router.push('/tunning');
-}
+    function goToTunningPage() {
+        router.push('/tunning');
+    }
 
-const fetchRestorationList = async () => {
-    try {
-        const user = JSON.parse(localStorage.getItem('user'));
-        if (!user || !user.id) {
-            console.error('An error occured. Please try again!');
-            return;
-        }
+    const fetchRestorationList = async () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user || !user.id) {
+                console.error('An error occured. Please try again!');
+                return;
+            }
 
-        const response = await axios.get(`http://localhost:5000/server/restoration/${user.id}`);
+            const response = await axios.get(`http://localhost:5000/server/restoration/${user.id}`);
 
-        if (Array.isArray(response.data)) {
-            restorationList.value = response.data.map(item => ({
-                ...item,
-                originalDate: item.date
-            }));
-            restorationList.value.sort((a, b) => new Date(b.date) - new Date(a.date));
-        } else {
-            console.error('Invalid data format, expected an array!');
+            if (Array.isArray(response.data)) {
+                restorationList.value = response.data.map(item => ({
+                    ...item,
+                    originalDate: item.date
+                }));
+                restorationList.value.sort((a, b) => new Date(b.date) - new Date(a.date));
+            } else {
+                console.error('Invalid data format, expected an array!');
+                restorationList.value = [];
+            }
+        } catch (error) {
+            console.error('Error when trying to fetch restoration list: ', error.message);
             restorationList.value = [];
         }
-    } catch (error) {
-        console.error('Error when trying to fetch restoration list: ', error.message);
-        restorationList.value = [];
-    }
-};
+    };
 
-const deleteRestoration = async(id) => {
-    try {
-        if(!confirm('Are you sure you want to delete the selected restoration?')) {
-            return;
+    const deleteRestoration = async(id) => {
+        try {
+            if(!confirm('Are you sure you want to delete the selected restoration?')) {
+                return;
+            }
+
+            await axios.delete(`http://localhost:5000/server/restoration/delete/${id}`);
+            restorationList.value = restorationList.value.filter(item => item.id !== id);
+        } catch (error) {
+            console.error('Error when trying to delete restoration: ', error.message);
+            alert('Could not delete selected restoration!');  
         }
+    };
 
-        await axios.delete(`http://localhost:5000/server/restoration/delete/${id}`);
-        restorationList.value = restorationList.value.filter(item => item.id !== id);
-    } catch (error) {
-        console.error('Error when trying to delete restoration: ', error.message);
-        alert('Could not delete selected restoration!');  
-    }
-};
+    onMounted(() => {
+        fetchRestorationList();
+    })
 
-onMounted(() => {
-    fetchRestorationList();
-})
+    const totalStages = computed(() => restorationList.value.length);
 
-const totalStages = computed(() => restorationList.value.length);
-
-const completedStages = computed(() => {
-    return restorationList.value.filter(stage => stage.status === 'completed').length;
-});
-
-const progressPercentage = computed(() => {
-    if (totalStages.value === 0) {
-        return 0;
-    }
-
-    return (completedStages.value / totalStages.value) * 100;
-})
-
-async function toggleStageStatus(id) {
-    const stage = restorationList.value.find(item => item.id === id);
-
-    if (stage) {
-        const newStatus = stage.status === 'completed' ? 'pending' : 'completed';
-        stage.status = newStatus;
-
-        if (newStatus === 'completed') {
-            stage.date = new Date().toLocaleDateString();
-        } else {
-            stage.date = stage.originalDate;
-        }
-    }
-};
-
-const openAddDialog = () => {
-    selectedRestoration.value = null;
-    showRestorationDialog.value = true;
-}
-
-const editRestoration = (item) => {
-    selectedRestoration.value = item;
-    showRestorationDialog.value = true;
-}
-
-const totalCost = computed(() => {
-    return restorationList.value.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
-});
-
-const generatePDF = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Restoration history', pageWidth / 2, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`(${new Date().toLocaleDateString()})`, pageWidth / 2, 25, { align: 'center' });
-
-    const tableData = restorationList.value.map(item => [
-        new Date(item.date).toLocaleDateString(),
-        item.title,
-        `${item.price} RON`,
-        item.description || '-',
-        item.status
-    ]);
-
-    autoTable(doc, {
-        head: [['Date', 'Restoration Title', 'Cost', 'Notes', 'Status']],
-        body: tableData,
-        startY: 40,
-        theme: 'grid',
-        headStyles: { fillColor: [213, 0, 249] },
-        styles: { fontSize: 10, cellPadding: 3 }
+    const completedStages = computed(() => {
+        return restorationList.value.filter(stage => stage.status === 'completed').length;
     });
 
-    const finalY = doc.lastAutoTable.finalY || 40;
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-    doc.text(`Total investment: ${totalCost.value} RON`, 14, finalY + 10);
-    doc.save('restoration_report.pdf');
-}
+    const progressPercentage = computed(() => {
+        if (totalStages.value === 0) {
+            return 0;
+        }
 
-const filteredList = computed(() => {
-    if (!searchQuery.value) {
-        return restorationList.value;
+        return (completedStages.value / totalStages.value) * 100;
+    })
+
+    async function toggleStageStatus(id) {
+        const stage = restorationList.value.find(item => item.id === id);
+
+        if (stage) {
+            const newStatus = stage.status === 'completed' ? 'pending' : 'completed';
+            stage.status = newStatus;
+
+            if (newStatus === 'completed') {
+                stage.date = new Date().toLocaleDateString();
+            } else {
+                stage.date = stage.originalDate;
+            }
+        }
+    };
+
+    const openAddDialog = () => {
+        selectedRestoration.value = null;
+        showRestorationDialog.value = true;
     }
 
-    return restorationList.value.filter(item => item.title.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
-        item.description && item.description.toLowerCase().includes(searchQuery.value.toLowerCase()));
-});
+    const editRestoration = (item) => {
+        selectedRestoration.value = item;
+        showRestorationDialog.value = true;
+    }
+
+    const totalCost = computed(() => {
+        return restorationList.value.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
+    });
+
+    const generatePDF = () => {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Restoration history', pageWidth / 2, 20, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text(`(${new Date().toLocaleDateString()})`, pageWidth / 2, 25, { align: 'center' });
+
+        const tableData = restorationList.value.map(item => [
+            new Date(item.date).toLocaleDateString(),
+            item.title,
+            `${item.price} RON`,
+            item.description || '-',
+            item.status
+        ]);
+
+        autoTable(doc, {
+            head: [['Date', 'Restoration Title', 'Cost', 'Notes', 'Status']],
+            body: tableData,
+            startY: 40,
+            theme: 'grid',
+            headStyles: { fillColor: [213, 0, 249] },
+            styles: { fontSize: 10, cellPadding: 3 }
+        });
+
+        const finalY = doc.lastAutoTable.finalY || 40;
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text(`Total investment: ${totalCost.value} RON`, 14, finalY + 10);
+        doc.save('restoration_report.pdf');
+    }
+
+    const filteredList = computed(() => {
+        let result = restorationList.value;
+
+        if (searchQuery.value) {
+            const query = searchQuery.value.toLowerCase();
+            result = result.filter(item => item.title.toLowerCase().includes(query) || (item.description && item.description.toLowerCase().includes(query)));
+        }
+
+        return result.sort((a, b) => {
+            let comp = 0;
+            const modifier = sortDesc.value ? -1 : 1;
+
+            switch (sortBy.value) {
+                case 'date':
+                    comp = new Date(a.date) - new Date(b.date);
+                    break;
+                case 'price':
+                    comp = Number(a.price) - Number(b.price);
+                    break;
+                case 'status':
+                    const statusA = a.status || '';
+                    const statusB = b.status || '';
+                    comp = statusA.localeCompare(statusB);
+                    break;
+                default:
+                    comp = 0;
+            }
+
+            if (comp === 0) {
+                return new Date(b.date) - new Date(a.date);
+            }
+
+            return comp * modifier;
+        });
+    });
+
+    const currentSortLabel = computed(() => {
+        const option = sortOptions.find(option => option.value === sortBy.value);
+        return option ? option.title : 'Sort';
+    })
 </script>
 
 <style scoped>
-.maintenance-page {
-    position: relative;
-    width: 100vw;
-    min-height: 100vh;
-    background-color: #1a1a1a;
-}
+    .maintenance-page {
+        position: relative;
+        width: 100vw;
+        min-height: 100vh;
+        background-color: #1a1a1a;
+    }
 
-.background-layer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('https://images.pexels.com/photos/4488660/pexels-photo-4488660.jpeg');
-    background-size: cover;
-    background-position: center;
-    filter: blur(8px) brightness(0.6); 
-    z-index: 0;
-    transform: scale(1.05);
-}
+    .background-layer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url('https://images.pexels.com/photos/4488660/pexels-photo-4488660.jpeg');
+        background-size: cover;
+        background-position: center;
+        filter: blur(8px) brightness(0.6); 
+        z-index: 0;
+        transform: scale(1.05);
+    }
 
-.content-layer {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-}
+    .content-layer {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+    }
 
-.icon-circle {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+    .icon-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-.opacity-80 {
-    opacity: 0.8;
-}
+    .opacity-80 {
+        opacity: 0.8;
+    }
 
-.action-card {
-    transition: transform 0.2s;
-}
+    .action-card {
+        transition: transform 0.2s;
+    }
 
-.action-card:hover {
-    transform: translateY(-5px);
-}
+    .action-card:hover {
+        transform: translateY(-5px);
+    }
 
-.history-item {
-    border: 1px solid transparent;
-    transition: all 0.2s;
-}
-.history-item:hover {
-    border-color: #2196F3;
-    background-color: #E3F2FD;
-}
+    .history-item {
+        border: 1px solid transparent;
+        transition: all 0.2s;
+    }
+    .history-item:hover {
+        border-color: #2196F3;
+        background-color: #E3F2FD;
+    }
 
-.border-green {
-    border-color: rgba(76, 175, 80, 0.3) !important;
-}
+    .border-green {
+        border-color: rgba(76, 175, 80, 0.3) !important;
+    }
 
-.border-purple {
-    border-color: rgba(156, 39, 176, 0.2) !important;
-}
+    .border-purple {
+        border-color: rgba(156, 39, 176, 0.2) !important;
+    }
 
-:deep(.v-timeline-divider__line) {
-    background: #E1BEE7 !important;
-}
+    :deep(.v-timeline-divider__line) {
+        background: #E1BEE7 !important;
+    }
 
-:deep(.v-timeline-item__body) {
-    width: 100%;
-    flex: 1;
-    padding-right: 0 !important;
-}
-
+    :deep(.v-timeline-item__body) {
+        width: 100%;
+        flex: 1;
+        padding-right: 0 !important;
+    }
 </style>

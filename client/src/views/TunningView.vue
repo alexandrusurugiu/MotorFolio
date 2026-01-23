@@ -109,17 +109,67 @@
                                 </v-btn>
                             </div>
 
-                            <v-text-field
-                                v-model="searchQuery"
-                                prepend-inner-icon="mdi-magnify"
-                                label="Search history"
-                                variant="solo-filled"
-                                flat
-                                hide-details
-                                density="compact"
-                                bg-color="grey-lighten-4"
-                                class="mb-6 rounded-lg" 
-                            ></v-text-field>
+                            <div class="d-flex gap-4 mb-6 align-center">
+                                <v-text-field
+                                    v-model="searchQuery"
+                                    prepend-inner-icon="mdi-magnify"
+                                    label="Search history"
+                                    variant="solo-filled"
+                                    flat
+                                    hide-details
+                                    density="compact"
+                                    bg-color="grey-lighten-4"
+                                    class="rounded-lg flex-grow-1 mr-2" 
+                                ></v-text-field>
+
+                                <v-menu location="bottom end" transition="scale-transition">
+                                    <template v-slot:activator="{ props }">
+                                        <v-btn v-bind="props" color="orange-darken-3" variant="tonal" height="48" class="rounded-lg px-4">
+                                            <v-icon :icon="sortDesc ? 'mdi-sort-ascending' : 'mdi-sort-descending'" class="mr-2"></v-icon>
+                                            {{ currentSortLabel }}
+                                            <v-icon icon="mdi-chevron-down" size="small" class="ml-1"></v-icon>
+                                        </v-btn>
+                                    </template>
+
+                                    <v-list class="rounded-lg elevation-4 py-2" width="200">
+                                        <v-list-subheader class="text-uppercase text-caption font-weight-bold">Sort by</v-list-subheader>
+                                    
+                                        <v-list-item
+                                            v-for="option in sortOptions"
+                                            :key="option.value"
+                                            :value="option.value"
+                                            @click="sortBy = option.value"
+                                            :active="sortBy === option.value"
+                                            color="orange"
+                                            rounded="lg"
+                                            class="mb-1 mx-2"
+                                        >
+                                        
+                                            <template v-slot:prepend>
+                                                <v-icon :icon="option.icon" size="small" class="mr-2"></v-icon>
+                                            </template>
+
+                                            <v-list-item-title>{{ option.title }}</v-list-item-title>
+
+                                            <template v-slot:append v-if="sortBy === option.value">
+                                                <v-icon icon="mdi-check" size="small" color="orange"></v-icon>
+                                            </template>
+                                        </v-list-item>
+
+                                        <v-divider class="my-2"></v-divider>
+
+                                        <v-list-subheader class="text-uppercase text-caption font-weight-bold">Direction</v-list-subheader>
+                                    
+                                        <v-list-item @click="sortDesc = !sortDesc" class="mx-2 rounded-lg">
+                                            <template v-slot:prepend>
+                                                <v-icon :icon="sortDesc ? 'mdi-sort-descending' : 'mdi-sort-ascending'"></v-icon>
+                                            </template>
+
+                                            <v-list-item-title>{{ sortDesc ? 'Ascending' : 'Descending' }}</v-list-item-title>
+                                        </v-list-item>
+                                    </v-list>
+                                </v-menu>
+                            </div>
 
                             <div v-if="tunningList.length === 0" class="text-center py-4 text-grey">There is no record of tunning yet.</div>
 
@@ -171,193 +221,234 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
-import AddTunningForm from '@/components/forms/AddTunningForm.vue';
-import { useRouter } from 'vue-router';
-import AppHeader from '@/components/forms/AppHeader.vue';
-import axios from 'axios';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
+    import { ref, onMounted, computed } from 'vue';
+    import AddTunningForm from '@/components/forms/AddTunningForm.vue';
+    import { useRouter } from 'vue-router';
+    import AppHeader from '@/components/forms/AppHeader.vue';
+    import axios from 'axios';
+    import jsPDF from 'jspdf';
+    import autoTable from 'jspdf-autotable';
 
-const showTunningDialog = ref(false);
-const router = useRouter();
-const tunningList = ref([]);
-const selectedTunning = ref(null);
-const searchQuery = ref('');
-const categoryIcons = {
-    'Engine': 'mdi-engine',
-    'Suspension': 'mdi-arrow-expand-vertical',
-    'Exhaust': 'mdi-weather-windy',
-    'Wheels': 'mdi-tire',
-    'Exterior': 'mdi-car-wash',
-    'Interior': 'mdi-car-seat'
-};
+    const showTunningDialog = ref(false);
+    const router = useRouter();
+    const tunningList = ref([]);
+    const selectedTunning = ref(null);
+    const searchQuery = ref('');
+    const sortBy = ref('date');
+    const sortDesc = ref(true);
+    const sortOptions = [
+        { title: 'Date', value: 'date', icon: 'mdi-calendar' },
+        { title: 'Price', value: 'price', icon: 'mdi-cash' },
+        { title: 'PowerGained', value: 'powerGained', icon: 'mdi-flash' }
+    ];
+    const categoryIcons = {
+        'Engine': 'mdi-engine',
+        'Suspension': 'mdi-arrow-expand-vertical',
+        'Exhaust': 'mdi-weather-windy',
+        'Wheels': 'mdi-tire',
+        'Exterior': 'mdi-car-wash',
+        'Interior': 'mdi-car-seat'
+    };
 
-function goToMaintenancePage() {
-  router.push('/maintenance');
-}
+    function goToMaintenancePage() {
+    router.push('/maintenance');
+    }
 
-function goToRestorationPage() {
-    router.push('/restoration');
-}
+    function goToRestorationPage() {
+        router.push('/restoration');
+    }
 
-const fetchTunningList = async () => {
-    try {
-        const user = JSON.parse(localStorage.getItem('user'));
-        if (!user || !user.id) {
-            alert('An error occured. Please relog!');
-            return;
-        }
+    const fetchTunningList = async () => {
+        try {
+            const user = JSON.parse(localStorage.getItem('user'));
+            if (!user || !user.id) {
+                alert('An error occured. Please relog!');
+                return;
+            }
 
-        const response = await axios.get(`http://localhost:5000/server/tunning/${user.id}`);
+            const response = await axios.get(`http://localhost:5000/server/tunning/${user.id}`);
 
-        if (Array.isArray(response.data)) {
-            tunningList.value = response.data;
-            tunningList.value.sort((a, b) => new Date(b.date) - new Date(a.date));
-        } else {
-            console.error('Invalid data format, expected an array!');
+            if (Array.isArray(response.data)) {
+                tunningList.value = response.data;
+                tunningList.value.sort((a, b) => new Date(b.date) - new Date(a.date));
+            } else {
+                console.error('Invalid data format, expected an array!');
+                tunningList.value = [];
+            }
+        } catch (error) {
+            console.error('Error when trying to fetch tunning list: ', error.message);
             tunningList.value = [];
         }
-    } catch (error) {
-        console.error('Error when trying to fetch tunning list: ', error.message);
-        tunningList.value = [];
-    }
-};
+    };
 
-const deleteTunning = async(id) => {
-    try {
-        if (!confirm('Are you sure you want to delete the selected tunning?')) {
-            return;
+    const deleteTunning = async(id) => {
+        try {
+            if (!confirm('Are you sure you want to delete the selected tunning?')) {
+                return;
+            }
+
+            await axios.delete(`http://localhost:5000/server/tunning/delete/${id}`);
+            tunningList.value = tunningList.value.filter(item => item.id !== id);
+        } catch (error) {
+            console.error('Error when trying to delete tunning: ', error.message);
+            alert('Could not delete selected tunning!');
         }
-
-        await axios.delete(`http://localhost:5000/server/tunning/delete/${id}`);
-        tunningList.value = tunningList.value.filter(item => item.id !== id);
-    } catch (error) {
-        console.error('Error when trying to delete tunning: ', error.message);
-        alert('Could not delete selected tunning!');
     }
-}
 
-onMounted(() => {
-    fetchTunningList();
-});
-
-const totalInvestment = computed(() => {
-    return tunningList.value.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
-});
-
-const totalPowerGain = computed(() => {
-    return tunningList.value.reduce((acc, item) => acc + (Number(item.powerGained) || 0), 0);
-});
-
-const totalMods = computed(() => tunningList.value.length);
-
-const getCategoryIcon = (category) => {
-    return categoryIcons[category];
-};
-
-const openAddDialog = () => {
-    selectedTunning.value = null;
-    showTunningDialog.value = true;
-}
-
-const editTunning = (item) => {
-    selectedTunning.value = item;
-    showTunningDialog.value = true;
-}
-
-const generatePDF = () => {
-    const doc = new jsPDF();
-    const pageWidth = doc.internal.pageSize.getWidth();
-
-    doc.setFontSize(20);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Tunning history', pageWidth / 2, 20, { align: 'center' });
-    doc.setFontSize(10);
-    doc.text(`(${new Date().toLocaleDateString()})`, pageWidth / 2, 25, { align: 'center' });
-
-    const tableData = tunningList.value.map(item => [
-        new Date(item.date).toLocaleDateString(),
-        item.title,
-        `${item.price} RON`,
-        item.category,
-        `+${item.powerGained} HP`,
-        item.description || '-'
-    ]);
-
-    autoTable(doc, {
-        head: [['Date', 'Mod Title', 'Price', 'Category', 'Power Gained', 'Notes']],
-        body: tableData,
-        startY: 40,
-        theme: 'grid',
-        headStyles: { fillColor: [251, 140, 0] },
-        styles: { fontSize: 10, cellPadding: 3 }
+    onMounted(() => {
+        fetchTunningList();
     });
 
-    const finalY = doc.lastAutoTable.finalY || 40;
-    doc.setFontSize(12);
-    doc.setTextColor(0);
-    doc.text(`Total investment: ${totalInvestment.value} RON`, 14, finalY + 10);
-    doc.save('tunning_report.pdf');
-}
+    const totalInvestment = computed(() => {
+        return tunningList.value.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
+    });
 
-const filteredList = computed(() => {
-    if (!searchQuery.value) {
-        return tunningList.value;
+    const totalPowerGain = computed(() => {
+        return tunningList.value.reduce((acc, item) => acc + (Number(item.powerGained) || 0), 0);
+    });
+
+    const totalMods = computed(() => tunningList.value.length);
+
+    const getCategoryIcon = (category) => {
+        return categoryIcons[category];
+    };
+
+    const openAddDialog = () => {
+        selectedTunning.value = null;
+        showTunningDialog.value = true;
     }
 
-    return tunningList.value.filter(item => item.title.toLowerCase().includes(searchQuery.value.toLowerCase()) || 
-        item.description && item.description.toLowerCase().includes(searchQuery.value.toLowerCase()));
-});
+    const editTunning = (item) => {
+        selectedTunning.value = item;
+        showTunningDialog.value = true;
+    }
+
+    const generatePDF = () => {
+        const doc = new jsPDF();
+        const pageWidth = doc.internal.pageSize.getWidth();
+
+        doc.setFontSize(20);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Tunning history', pageWidth / 2, 20, { align: 'center' });
+        doc.setFontSize(10);
+        doc.text(`(${new Date().toLocaleDateString()})`, pageWidth / 2, 25, { align: 'center' });
+
+        const tableData = tunningList.value.map(item => [
+            new Date(item.date).toLocaleDateString(),
+            item.title,
+            `${item.price} RON`,
+            item.category,
+            `+${item.powerGained} HP`,
+            item.description || '-'
+        ]);
+
+        autoTable(doc, {
+            head: [['Date', 'Mod Title', 'Price', 'Category', 'Power Gained', 'Notes']],
+            body: tableData,
+            startY: 40,
+            theme: 'grid',
+            headStyles: { fillColor: [251, 140, 0] },
+            styles: { fontSize: 10, cellPadding: 3 }
+        });
+
+        const finalY = doc.lastAutoTable.finalY || 40;
+        doc.setFontSize(12);
+        doc.setTextColor(0);
+        doc.text(`Total investment: ${totalInvestment.value} RON`, 14, finalY + 10);
+        doc.save('tunning_report.pdf');
+    }
+
+    const filteredList = computed(() => {
+        let result = tunningList.value;
+
+        if (searchQuery.value) {
+            const query = searchQuery.value.toLowerCase();
+            result = result.filter(item => item.title.toLowerCase().includes(query) || (item.description && item.description.toLowerCase().includes(query)));
+        }
+
+        return result.sort((a, b) => {
+            let comp = 0;
+            const modifier = sortDesc.value ? -1 : 1;
+
+            switch(sortBy.value) {
+                case 'date':
+                    comp = new Date(a.date) - new Date(b.date);
+                    break;
+                case 'price':
+                    comp = Number(a.price) - Number(b.price);
+                    break;
+                case 'powerGained':
+                    comp = Number(a.powerGained) - Number(b.powerGained);
+                    break;
+                default:
+                    comp = 0;
+            }
+
+            if (comp === 0) {
+                if (sortBy.value === 'date') {
+                    return 0;
+                }
+
+                return new Date(b.date) - new Date(a.date);
+            }
+
+            return comp * modifier;
+        });
+    });
+
+    const currentSortLabel = computed(() => {
+        const option = sortOptions.find(option => option.value === sortBy.value);
+        return option ? option.title : 'Sort';
+    });
 </script>
 
 
 <style scoped>
-.maintenance-page {
-    position: relative;
-    width: 100vw;
-    min-height: 100vh;
-    background-color: #1a1a1a;
-}
+    .maintenance-page {
+        position: relative;
+        width: 100vw;
+        min-height: 100vh;
+        background-color: #1a1a1a;
+    }
 
-.background-layer {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('https://images.pexels.com/photos/4488660/pexels-photo-4488660.jpeg');
-    background-size: cover;
-    background-position: center;
-    filter: blur(8px) brightness(0.6); 
-    z-index: 0;
-    transform: scale(1.05);
-}
+    .background-layer {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url('https://images.pexels.com/photos/4488660/pexels-photo-4488660.jpeg');
+        background-size: cover;
+        background-position: center;
+        filter: blur(8px) brightness(0.6); 
+        z-index: 0;
+        transform: scale(1.05);
+    }
 
-.content-layer {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-}
+    .content-layer {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+    }
 
-.icon-circle {
-    width: 60px;
-    height: 60px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
+    .icon-circle {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
 
-.opacity-80 {
-    opacity: 0.8;
-}
+    .opacity-80 {
+        opacity: 0.8;
+    }
 
-.action-card {
-    transition: transform 0.2s;
-}
+    .action-card {
+        transition: transform 0.2s;
+    }
 
-.action-card:hover {
-    transform: translateY(-5px);
-}
+    .action-card:hover {
+        transform: translateY(-5px);
+    }
 </style>
