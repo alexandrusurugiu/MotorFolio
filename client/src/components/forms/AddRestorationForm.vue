@@ -73,9 +73,9 @@
             };
 
             if (isEditMode.value) {
-                await axios.put(`http://localhost:5000/server/restoration/update/${props.editData.id}`, payload);
+                await axios.put(`/server/restoration/update/${props.editData.id}`, payload);
             } else {
-                await axios.post(`http://localhost:5000/server/restoration/add-restoration`, payload);
+                await axios.post('/server/restoration/add-restoration', payload);
             }
 
             emit('refresh');

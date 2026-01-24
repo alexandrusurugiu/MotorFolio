@@ -81,9 +81,9 @@
             };
 
             if (isEditMode.value) {
-                await axios.put(`http://localhost:5000/server/tunning/update/${props.editData.id}`, payload);
+                await axios.put(`/server/tunning/update/${props.editData.id}`, payload);
             } else {
-                await axios.post(`http://localhost:5000/server/tunning/add-tunning`, payload);
+                await axios.post('/server/tunning/add-tunning', payload);
             }
 
             emit('refresh');

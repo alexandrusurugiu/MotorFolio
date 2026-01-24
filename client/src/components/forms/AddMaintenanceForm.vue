@@ -75,9 +75,9 @@
             };
 
             if (isEditMode.value) {
-                await axios.put(`http://localhost:5000/server/maintenance/update/${props.editData.id}`, payload);
+                await axios.put(`/server/maintenance/update/${props.editData.id}`, payload);
             } else {
-                await axios.post(`http://localhost:5000/server/maintenance/add-maintenance`, payload);
+                await axios.post('/server/maintenance/add-maintenance', payload);
             }
 
             emit('refresh');
