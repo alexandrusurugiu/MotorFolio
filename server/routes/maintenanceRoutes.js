@@ -3,10 +3,11 @@ const router = express.Router();
 const maintenanceController = require('../controllers/maintenanceController');
 const { validateMaintenance } = require('../validators/maintenanceValidator');
 const { checkErrors } = require ('../validators/validateResult');
+const { validateAuthToken } = require('../middleware/auth');
 
-router.post('/add-maintenance', validateMaintenance, checkErrors, maintenanceController.addMaintenance);
-router.get('/:userId', maintenanceController.getMaintenanceListByUserId);
-router.delete('/delete/:id', maintenanceController.deleteMaintenance);
-router.put('/update/:id', validateMaintenance, checkErrors, maintenanceController.updateMaintenance);
+router.post('/add-maintenance', validateAuthToken, validateMaintenance, checkErrors, maintenanceController.addMaintenance);
+router.get('/', validateAuthToken, maintenanceController.getMaintenanceListByUserId);
+router.delete('/delete/:id', validateAuthToken, maintenanceController.deleteMaintenance);
+router.put('/update/:id', validateAuthToken, validateMaintenance, checkErrors, maintenanceController.updateMaintenance);
 
 module.exports = router;
