@@ -133,7 +133,6 @@
     const showForgotPasswordDialog = ref(false);
     const resetEmail = ref('');
     const resetLoading = ref(false);
-    const url = 'http://localhost:5000/server/auth';
     const rules = {
         emailRequired: v => !!v || 'Email is required!',
         emailValid: v => /.@.+\../.test(v) || 'Email must be valid!',
@@ -151,7 +150,7 @@
     });
 
     const processToken = async(firebaseToken) => {
-        const response = await axios.post(`${url}/verify-token`, {
+        const response = await axios.post('/server/auth/verify-token', {
             token: firebaseToken
         });
 

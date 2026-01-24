@@ -236,7 +236,7 @@
                 return;
             }
 
-            const response = await axios.get('http://localhost:5000/server/maintenance');
+            const response = await axios.get('/server/maintenance');
 
             if (Array.isArray(response.data)) {
                 maintenanceList.value = response.data;
@@ -257,7 +257,7 @@
         }
 
         try {
-            await axios.delete(`http://localhost:5000/server/maintenance/delete/${id}`);
+            await axios.delete(`/server/maintenance/delete/${id}`);
             maintenanceList.value = maintenanceList.value.filter(item => item.id !== id);
         } catch (error) {
             console.error('Error when trying to delete maintenance: ', error.message);

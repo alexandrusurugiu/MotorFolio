@@ -266,7 +266,7 @@
                 return;
             }
 
-            const response = await axios.get('http://localhost:5000/server/tunning/');
+            const response = await axios.get('/server/tunning/');
 
             if (Array.isArray(response.data)) {
                 tunningList.value = response.data;
@@ -287,7 +287,7 @@
                 return;
             }
 
-            await axios.delete(`http://localhost:5000/server/tunning/delete/${id}`);
+            await axios.delete(`/server/tunning/delete/${id}`);
             tunningList.value = tunningList.value.filter(item => item.id !== id);
         } catch (error) {
             console.error('Error when trying to delete tunning: ', error.message);

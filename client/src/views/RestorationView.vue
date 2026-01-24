@@ -288,7 +288,7 @@
                 return;
             }
 
-            const response = await axios.get('http://localhost:5000/server/restoration');
+            const response = await axios.get('/server/restoration');
 
             if (Array.isArray(response.data)) {
                 restorationList.value = response.data.map(item => ({
@@ -312,7 +312,7 @@
                 return;
             }
 
-            await axios.delete(`http://localhost:5000/server/restoration/delete/${id}`);
+            await axios.delete(`/server/restoration/delete/${id}`);
             restorationList.value = restorationList.value.filter(item => item.id !== id);
         } catch (error) {
             console.error('Error when trying to delete restoration: ', error.message);
