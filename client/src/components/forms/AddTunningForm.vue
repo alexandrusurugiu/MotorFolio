@@ -72,7 +72,6 @@
             const user = JSON.parse(localStorage.getItem('user'));
 
             const payload = {
-                userId: user.id,
                 title: formData.value.title,
                 description: formData.value.description,
                 category: formData.value.category,

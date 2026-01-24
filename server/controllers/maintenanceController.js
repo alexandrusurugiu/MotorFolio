@@ -2,7 +2,8 @@ const { db } = require('../database/db');
 
 const addMaintenance = async(req, res) => {
     try {
-        const { userId, title, description, date, price, mileage } = req.body;
+        const { title, description, date, price, mileage } = req.body;
+        const userId = req.user.uid;
 
         const newMaintenance = {
             userId,
@@ -24,7 +25,7 @@ const addMaintenance = async(req, res) => {
 
 const getMaintenanceListByUserId = async(req, res) => {
     try {
-        const { userId } = req.params;
+        const userId = req.user.uid;
 
         const snapshot = await db.collection('maintenances').where('userId', '==', userId).get();
         const maintenanceList = [];
@@ -41,8 +42,19 @@ const getMaintenanceListByUserId = async(req, res) => {
 const deleteMaintenance = async(req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.uid;
+        const docRef = db.collection('maintenances').doc(id);
+        const doc = await docRef.get();
 
-        await db.collection('maintenances').doc(id).delete();
+        if (!doc.exists) {
+            return res.status(404).json({ message: 'Maintenance record could not be found!' });
+        }
+
+        if (doc.data().userId !== userId) {
+            return res.status(403).json({ message: 'You are not authorized to delete this maintenance record!' });
+        }
+
+        await docRef.delete();
 
         res.status(200).json({ message: 'Maintenance deleted successfully!'});
     } catch (error) {
@@ -53,9 +65,20 @@ const deleteMaintenance = async(req, res) => {
 const updateMaintenance = async(req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.uid;
         const data = req.body;
+        const docRef = db.collection('maintenances').doc(id);
+        const doc = await docRef.get();
 
-        await db.collection('maintenances').doc(id).update(data);
+        if (!doc.exists) {
+            return res.status(404).json({ message: 'Maintenance record could not be found!' });
+        }
+
+        if (doc.data().userId !== userId) {
+            return res.status(403).json({ message: 'You are not authorized to update this maintenance record!' });
+        }
+
+        await docRef.update(data);
 
         res.status(200).json({ message: 'Maintenance updated successfully!' });
     } catch (error) {

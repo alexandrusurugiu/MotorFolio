@@ -1,7 +1,7 @@
 <template>
     <v-card class="pa-6 rounded-xl elevation-4 mb-4">
         <v-card-title class="font-weight-bold">
-            {{ idEditMode ? 'Edit maintenance' : 'Add maintenance' }}
+            {{ isEditMode ? 'Edit maintenance' : 'Add maintenance' }}
         </v-card-title>
 
         <v-card-text>
@@ -66,10 +66,7 @@
         }
 
         try {
-            const user = JSON.parse(localStorage.getItem('user'));
-
             const payload =  {
-                userId: user.id,
                 title: formData.value.title,
                 description: formData.value.description,
                 date: formData.value.date,

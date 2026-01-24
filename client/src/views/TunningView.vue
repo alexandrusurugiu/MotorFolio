@@ -266,7 +266,7 @@
                 return;
             }
 
-            const response = await axios.get(`http://localhost:5000/server/tunning/${user.id}`);
+            const response = await axios.get('http://localhost:5000/server/tunning/');
 
             if (Array.isArray(response.data)) {
                 tunningList.value = response.data;

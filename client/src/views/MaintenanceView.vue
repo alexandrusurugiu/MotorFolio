@@ -236,7 +236,7 @@
                 return;
             }
 
-            const response = await axios.get(`http://localhost:5000/server/maintenance/${user.id}`);
+            const response = await axios.get('http://localhost:5000/server/maintenance');
 
             if (Array.isArray(response.data)) {
                 maintenanceList.value = response.data;

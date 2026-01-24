@@ -288,7 +288,7 @@
                 return;
             }
 
-            const response = await axios.get(`http://localhost:5000/server/restoration/${user.id}`);
+            const response = await axios.get('http://localhost:5000/server/restoration');
 
             if (Array.isArray(response.data)) {
                 restorationList.value = response.data.map(item => ({

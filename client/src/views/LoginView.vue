@@ -155,8 +155,8 @@
             token: firebaseToken
         });
 
-        const { token, user } = response.data;
-        localStorage.setItem('token', token);
+        const { user } = response.data;
+        localStorage.setItem('token', firebaseToken);
         localStorage.setItem('user', JSON.stringify(user));
 
         router.push('/maintenance');

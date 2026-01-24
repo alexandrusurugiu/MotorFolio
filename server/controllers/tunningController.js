@@ -2,7 +2,8 @@ const { db } = require('../database/db');
 
 const addTunning = async(req, res) => {
     try {
-        const { userId, title, description, category, date, price, powerGained } = req.body;
+        const { title, description, category, date, price, powerGained } = req.body;
+        const userId = req.user.uid;
 
         const newTunning = {
             userId,
@@ -25,7 +26,7 @@ const addTunning = async(req, res) => {
 
 const getTunningListByUserId = async(req, res) => {
     try {
-        const { userId } = req.params;
+        const userId = req.user.uid;
 
         const snapshot = await db.collection('tunnings').where('userId', '==', userId).get();
         const tunningList = [];
@@ -42,8 +43,19 @@ const getTunningListByUserId = async(req, res) => {
 const deleteTunning = async(req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.uid;
+        const docRef = db.collection('tunnings').doc(id);
+        const doc = await docRef.get();
 
-        await db.collection('tunnings').doc(id).delete();
+        if (!doc.exists) {
+            return res.status(404).json({ message: 'Tunning record could not be found!' });
+        }
+
+        if (doc.data().userId !== userId) {
+            return res.status(403).json({ message: 'You are not authorized to delete this tunning record!' });
+        }
+
+        await docRef.delete();
 
         res.status(200).json({ message: 'Tunning deleted successfully!'});
     } catch (error) {
@@ -54,9 +66,20 @@ const deleteTunning = async(req, res) => {
 const updateTunning = async(req, res) => {
     try {
         const { id } = req.params;
+        const userId = req.user.uid;
         const data = req.body;
+        const docRef = db.collection('tunnings').doc(id);
+        const doc = await docRef.get();
 
-        await db.collection('tunnings').doc(id).update(data);
+        if (!doc.exists) {
+            return res.status(404).json({ message: 'Tunning record could not be found!' });
+        }
+
+        if (doc.data().userId !== userId) {
+            return res.status(403).json({ message: 'You are not authorized to update this tunning record!' });
+        }
+
+        await docRef.update(data);
 
         res.status(200).json({ message: 'Tunning updated successfully!' });
     } catch (error) {
