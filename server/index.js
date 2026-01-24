@@ -13,7 +13,8 @@ const PORT = process.env.PORT;
 app.use(morgan('dev'));
 app.use(cors({
     origin: ['https://motor-folio.vercel.app', 'http://localhost:5173'], 
-    credentials: true
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']
 }));
 app.use(express.json());
 
