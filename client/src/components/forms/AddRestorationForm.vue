@@ -6,9 +6,9 @@
 
         <v-card-text>
             <v-form ref="form" @submit.prevent="saveRestoration">
-                <v-text-field label="Title" v-model="formData.title" placeholder="ex: Rust removal" variant="outlined" :rules="[rules.required]"></v-text-field>
-                <v-text-field label="Description" v-model="formData.description" placeholder="ex: Details about the restoration work" variant="outlined"></v-text-field>
-                <v-date-picker label="Date" v-model="formData.date"></v-date-picker>
+                <v-text-field label="Title" v-model="formData.title" placeholder="ex: Rust removal" variant="outlined" :rules="[rules.required, rules.maxTitle]"></v-text-field>
+                <v-text-field label="Description" v-model="formData.description" placeholder="ex: Details about the restoration work" variant="outlined" :rules="[rules.maxDescription]"></v-text-field>
+                <v-date-picker label="Date" v-model="formData.date" :rules="[rules.noFutureDate]"></v-date-picker>
                 <v-text-field label="Price" v-model="formData.price" placeholder="0" variant="outlined" :rules="[rules.positive]"></v-text-field>
             </v-form>
         </v-card-text>
@@ -35,7 +35,16 @@
 
     const rules = {
         required: v => !!v || 'Field is required!',
-        positive: v => v >= 0 || 'Must be positive!'
+        positive: v => v >= 0 || 'Must be positive!',
+        maxTitle: v => (v && v.length <= 50) || 'Title must be less than 50 characters long!',
+        maxDescription: v => (v && v.length <= 500) || 'Description must be less than 500 characters long!',
+        noFutureDate: v => {
+            if (!v) {
+                return true;
+            }
+
+            return new Date(v) <= new Date() || 'Date cannot be in the future!';
+        }
     };
 
     const isEditMode = computed(() => props.editData !== null);

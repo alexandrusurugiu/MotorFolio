@@ -48,16 +48,16 @@
                             <v-text-field v-if="tab === 'register'" label="Name" v-model="formData.name" prepend-inner-icon="mdi-account" variant="outlined"></v-text-field>
                         </v-expand-transition>
                         
-                        <v-text-field label="Email" v-model="formData.email" prepend-inner-icon="mdi-email-outline" variant="outlined"></v-text-field>
+                        <v-text-field label="Email" v-model="formData.email" prepend-inner-icon="mdi-email-outline" variant="outlined" :rules="[rules.emailRequired, rules.emailValid]"></v-text-field>
                         
-                        <v-text-field label="Password" v-model="formData.password" type="password" prepend-inner-icon="mdi-lock-outline" variant="outlined"></v-text-field>
+                        <v-text-field label="Password" v-model="formData.password" type="password" prepend-inner-icon="mdi-lock-outline" variant="outlined" :rules="[rules.passwordMin, rules.passwordRequired]"></v-text-field>
                         <div v-if="tab === 'login'" class="d-flex justify-end mt-n3 mb-8">
                             <span class="text-caption font-weight-bold text-grey-darken-1" style="cursor: pointer;" @click="showForgotPasswordDialog = true">Forgot password?</span>
                         </div>
  
 
                         <v-expand-transition>
-                            <v-text-field v-if="tab === 'register'" label="Confirm Password" v-model="formData.confirmPassword" type="password" prepend-inner-icon="mdi-lock-outline" variant="outlined"></v-text-field>
+                            <v-text-field v-if="tab === 'register'" label="Confirm Password" v-model="formData.confirmPassword" type="password" prepend-inner-icon="mdi-lock-outline" variant="outlined" :rules="[rules.confirmPasswordRequired, rules.confirmPasswordMatch]"></v-text-field>
                         </v-expand-transition>
 
                         <v-btn block color="black" size="large" @click="handleSubmit" :loading="loading" class="mt-4 text-white">
@@ -134,6 +134,14 @@
     const resetEmail = ref('');
     const resetLoading = ref(false);
     const url = 'http://localhost:5000/server/auth';
+    const rules = {
+        emailRequired: v => !!v || 'Email is required!',
+        emailValid: v => /.@.+\../.test(v) || 'Email must be valid!',
+        passwordRequired: v => !!v || 'Password is required!',
+        passwordMin: v => (v && v.length >= 6) || 'Password must be at least 6 characters long!',
+        confirmPasswordRequired: v => !!v || 'Please confirm your password!',
+        confirmPasswordMatch: v => v === formData.value.password || 'Password do not match!'
+    };
 
     const formData = ref({
         name: '',

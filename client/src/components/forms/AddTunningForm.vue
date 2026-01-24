@@ -6,10 +6,10 @@
 
         <v-card-text>
             <v-form ref="form" @submit.prevent="saveTunning">
-                <v-text-field label="Title" v-model="formData.title" placeholder="ex: Turbo K04 Upgrade" variant="outlined" :rules="[rules.required]"></v-text-field>
-                <v-text-field label="Description" v-model="formData.description" placeholder="ex: Details about the modification" variant="outlined"></v-text-field>
+                <v-text-field label="Title" v-model="formData.title" placeholder="ex: Turbo K04 Upgrade" variant="outlined" :rules="[rules.required, rules.maxTitle]"></v-text-field>
+                <v-text-field label="Description" v-model="formData.description" placeholder="ex: Details about the modification" variant="outlined" :rules="[rules.maxDescription]"></v-text-field>
                 <v-select label="Category" v-model="formData.category" :items="['Engine', 'Suspension', 'Exhaust', 'Wheels', 'Exterior', 'Interior']" variant="outlined" :rules="[rules.required]"></v-select>
-                <v-date-picker label="Date" v-model="formData.date"></v-date-picker>
+                <v-date-picker label="Date" v-model="formData.date" :rules="[rules.noFutureDate]"></v-date-picker>
                 <v-text-field label="Price" v-model="formData.price" placeholder="0" variant="outlined" :rules="[rules.positive]"></v-text-field>
                 <v-text-field label="Power gained" v-model="formData.powerGained" placeholder="0" variant="outlined" :rules="[rules.number, rules.positive]"></v-text-field>
             </v-form>
@@ -39,7 +39,16 @@
     const rules = {
         required: v => !!v || 'Field is required!',
         positive: v => v >= 0 || 'Must be positive!',
-        number: v => !isNaN(parseFloat(v)) || 'Must be a number!'
+        number: v => !isNaN(parseFloat(v)) || 'Must be a number!',
+        maxTitle: v => (v && v.length <= 50) || 'Title must be less than 50 characters long!',
+        maxDescription: v => (v && v.length <= 500) || 'Description must be less than 500 characters long!',
+        noFutureDate: v => {
+            if (!v) {
+                return true;
+            }
+
+            return new Date(v) <= new Date() || 'Date cannot be in the future!';
+        }
     }
 
     const isEditMode = computed(() => props.editData !== null);

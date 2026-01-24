@@ -6,9 +6,9 @@
 
         <v-card-text>
             <v-form ref="form" @submit.prevent="saveMaintenance">
-                <v-text-field label="Title" v-model="formData.title" placeholder="ex:Oil change" variant="outlined" :rules="[rules.required]"></v-text-field>
-                <v-text-field label="Description" v-model="formData.description" placeholder="Details about the maintenance work" variant="outlined"></v-text-field>
-                <v-date-picker label="Date" v-model="formData.date"></v-date-picker>
+                <v-text-field label="Title" v-model="formData.title" placeholder="ex:Oil change" variant="outlined" :rules="[rules.required, rules.maxTitle]"></v-text-field>
+                <v-text-field label="Description" v-model="formData.description" placeholder="Details about the maintenance work" variant="outlined" :rules="[rules.maxDescription]"></v-text-field>
+                <v-date-picker label="Date" v-model="formData.date" :rules="[rules.noFutureDate]"></v-date-picker>
                 <v-text-field label="Price" v-model="formData.price" placeholder="0" variant="outlined" :rules="[rules.positive]"></v-text-field>
                 <v-text-field label="Mileage" v-model="formData.mileage" placeholder="0" variant="outlined" :rules="[rules.required, rules.positive]"></v-text-field>
             </v-form>
@@ -30,7 +30,16 @@
 
     const rules = {
         required: v => !!v || 'Field is required!',
-        positive: v => v >= 0 || 'Must be a positive number!'
+        positive: v => v >= 0 || 'Must be a positive number!',
+        maxTitle: v => (v && v.length <= 50) || 'Title must be less than 50 characters long!',
+        maxDescription: v => (v && v.length <= 500) || 'Description must be less than 500 characters long!',
+        noFutureDate: v => {
+            if (!v) {
+                return true;
+            }
+
+            return new Date(v) <= new Date() || 'Date cannot be in the future!';
+        }
     };
 
     const props = defineProps({
