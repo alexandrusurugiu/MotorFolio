@@ -91,7 +91,7 @@
                                     size="small"
                                     prepend-icon="mdi-file-pdf-box"
                                     @click="generatePDF"
-                                    :disabled="maintenanceList.length === 0"
+                                    :disabled="totalCount === 0"
                                 >
                                     Export
                                 </v-btn>
@@ -156,7 +156,7 @@
                                 </v-menu>
                             </div>
 
-                            <div v-if="maintenanceList.length === 0" class="text-center py-4 text-grey">There is no record of maintenance yet.</div>
+                            <div v-if="totalCount === 0" class="text-center py-4 text-grey">There is no record of maintenance yet.</div>
 
                             <v-card v-else v-for="item in filteredList" :key="item.id" flat class="bg-blue-lighten-5 rounded-lg pa-4 mb-4 history-item">
                                 <div class="d-flex justify-space-between align-start mb-2">
@@ -178,7 +178,7 @@
                                 <div class="d-flex flex-wrap align-center">
                                     <div class="d-flex align-center mr-6">
                                         <v-icon icon="mdi-calendar" size="small" color="blue" class="mr-2"></v-icon>
-                                        <span class="text-body-2 text-blue font-weight-medium">{{ new Date(item.date).toLocaleDateString() }}</span>
+                                        <span class="text-body-2 text-blue font-weight-medium">{{ parseDate(item.date).toLocaleDateString() }}</span>
                                     </div>
                                     <div class="d-flex align-center mr-6">
                                         <v-icon icon="mdi-cash" size="small" color="green-darken-3" class="mr-2"></v-icon>
@@ -203,13 +203,13 @@
     import { useRouter } from 'vue-router';
     import { ref, onMounted, computed } from 'vue';
     import AppHeader from '@/components/forms/AppHeader.vue';
-    import axios from 'axios';
     import jsPDF from 'jspdf';
     import autoTable from 'jspdf-autotable';
+    import { useMaintenanceStore } from '@/stores/maintenance';
 
     const showMaintenanceDialog = ref(false);
     const router = useRouter();
-    const maintenanceList = ref([]);
+    const maintenanceStore = useMaintenanceStore();
     const selectedMaintenance = ref(null);
     const searchQuery = ref('');
     const sortBy = ref('date');
@@ -229,26 +229,7 @@
     }
 
     const fetchMaintenanceList = async () => {
-        try {
-            const user = JSON.parse(localStorage.getItem('user'));
-            if (!user || !user.id) {
-                alert('An error occured. Please relog!');
-                return;
-            }
-
-            const response = await axios.get('/server/maintenance');
-
-            if (Array.isArray(response.data)) {
-                maintenanceList.value = response.data;
-                maintenanceList.value.sort((a, b) => new Date(b.date) - new Date(a.date));
-            } else {
-                console.error('Invalid data format, expected an array!');
-                maintenanceList.value = [];
-            }
-        } catch (error) {
-            console.error('Error when trying to fetch maintenance list: ', error.message);
-            maintenanceList.value = [];
-        }
+       await maintenanceStore.fetchAllItems(true);
     };
 
     const deleteMaintenance = async(id) => {
@@ -257,8 +238,7 @@
         }
 
         try {
-            await axios.delete(`/server/maintenance/delete/${id}`);
-            maintenanceList.value = maintenanceList.value.filter(item => item.id !== id);
+            await maintenanceStore.deleteMaintenance(id);
         } catch (error) {
             console.error('Error when trying to delete maintenance: ', error.message);
             alert('Could not delete selected maintenance!');
@@ -266,14 +246,11 @@
     }
 
     onMounted(() => {
-        fetchMaintenanceList();
+        maintenanceStore.fetchAllItems();
     });
 
-    const totalCost = computed(() => {
-        return maintenanceList.value.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
-    });
-
-    const totalCount = computed(() => maintenanceList.value.length);
+    const totalCost = computed(() => maintenanceStore.totalCost);
+    const totalCount = computed(() => maintenanceStore.totalCount);
 
     const openAddDialog = () => {
         selectedMaintenance.value = null;
@@ -294,9 +271,8 @@
         doc.text('Maintenance history', pageWidth / 2, 20, { align: 'center' });
         doc.setFontSize(10);
         doc.text(`(${new Date().toLocaleDateString()})`, pageWidth / 2, 25, { align: 'center' });
-
-        const tableData = maintenanceList.value.map(item => [
-            new Date(item.date).toLocaleDateString(),
+        const tableData = maintenanceStore.items.map(item => [
+            parseDate(item.date).toLocaleDateString(),
             item.title,
             `${item.price} RON`,
             `${item.mileage} km`,
@@ -320,20 +296,20 @@
     }
 
     const filteredList = computed(() => {
-        let result = maintenanceList.value;
+        let result = maintenanceStore.items;
 
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase();
             result = result.filter(item => item.title.toLowerCase().includes(query) || (item.description && item.description.toLowerCase().includes(query)));
         }
 
-        return result.sort((a, b) => {
+        return [...result].sort((a, b) => {
             let comp = 0;
             const modifier = sortDesc.value ? -1 : 1;
 
             switch(sortBy.value) {
                 case 'date':
-                    comp = new Date(a.date) - new Date(b.date);
+                    comp = parseDate(a.date) - parseDate(b.date);
                     break;
                 case 'price':
                     comp = Number(a.price) - Number(b.price);
@@ -350,7 +326,7 @@
                     return 0;
                 }
 
-                return new Date(b.date) - new Date(a.date);
+                return parseDate(b.date) - parseDate(a.date);
             }
 
             return comp * modifier;
@@ -361,6 +337,18 @@
         const option = sortOptions.find(option => option.value === sortBy.value);
         return option ? option.title : 'Sort';
     });
+
+    const parseDate = (dateVal) => {
+        if (!dateVal) {
+            return new Date();
+        }
+
+        if (typeof dateVal === 'object' && dateVal._seconds) {
+            return new Date(dateVal._seconds * 1000);
+        }
+
+        return new Date(dateVal);
+    };
 </script>
 
 <style scoped>

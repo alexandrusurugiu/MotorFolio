@@ -103,7 +103,7 @@
                                     size="small"
                                     prepend-icon="mdi-file-pdf-box"
                                     @click="generatePDF"
-                                    :disabled="tunningList.length === 0"
+                                    :disabled="totalMods === 0"
                                 >
                                     Export
                                 </v-btn>
@@ -171,7 +171,7 @@
                                 </v-menu>
                             </div>
 
-                            <div v-if="tunningList.length === 0" class="text-center py-4 text-grey">There is no record of tunning yet.</div>
+                            <div v-if="totalMods === 0" class="text-center py-4 text-grey">There is no record of tunning yet.</div>
 
                             <v-card v-else v-for="item in filteredList" :key="item.id" flat class="bg-orange-lighten-5 rounded-xl pa-5 mb-4 mod-item border-orange-thin">
                                 
@@ -200,7 +200,7 @@
                                 <div class="d-flex flex-wrap align-center">
                                     <div class="d-flex align-center mr-6 mb-2">
                                         <v-icon icon="mdi-calendar" size="small" color="orange-darken-2" class="mr-2"></v-icon>
-                                        <span class="text-caption text-orange-darken-4 font-weight-medium">{{ new Date(item.date).toLocaleDateString() }}</span>
+                                        <span class="text-caption text-orange-darken-4 font-weight-medium">{{ parseDate(item.date).toLocaleDateString() }}</span>
                                     </div>
                                     <div class="d-flex align-center mr-6 mb-2">
                                         <v-icon icon="mdi-cash" size="small" color="green-darken-2" class="mr-2"></v-icon>
@@ -225,13 +225,13 @@
     import AddTunningForm from '@/components/forms/AddTunningForm.vue';
     import { useRouter } from 'vue-router';
     import AppHeader from '@/components/forms/AppHeader.vue';
-    import axios from 'axios';
     import jsPDF from 'jspdf';
     import autoTable from 'jspdf-autotable';
+    import { useTunningStore } from '@/stores/tunning';
 
     const showTunningDialog = ref(false);
     const router = useRouter();
-    const tunningList = ref([]);
+    const tunningStore = useTunningStore();
     const selectedTunning = ref(null);
     const searchQuery = ref('');
     const sortBy = ref('date');
@@ -259,36 +259,16 @@
     }
 
     const fetchTunningList = async () => {
-        try {
-            const user = JSON.parse(localStorage.getItem('user'));
-            if (!user || !user.id) {
-                alert('An error occured. Please relog!');
-                return;
-            }
-
-            const response = await axios.get('/server/tunning/');
-
-            if (Array.isArray(response.data)) {
-                tunningList.value = response.data;
-                tunningList.value.sort((a, b) => new Date(b.date) - new Date(a.date));
-            } else {
-                console.error('Invalid data format, expected an array!');
-                tunningList.value = [];
-            }
-        } catch (error) {
-            console.error('Error when trying to fetch tunning list: ', error.message);
-            tunningList.value = [];
-        }
+        await tunningStore.fetchAllItems(true);
     };
 
     const deleteTunning = async(id) => {
+        if (!confirm('Are you sure you want to delete the selected tunning?')) {
+            return;
+        }
+        
         try {
-            if (!confirm('Are you sure you want to delete the selected tunning?')) {
-                return;
-            }
-
-            await axios.delete(`/server/tunning/delete/${id}`);
-            tunningList.value = tunningList.value.filter(item => item.id !== id);
+            await tunningStore.deleteTunning(id);
         } catch (error) {
             console.error('Error when trying to delete tunning: ', error.message);
             alert('Could not delete selected tunning!');
@@ -296,22 +276,14 @@
     }
 
     onMounted(() => {
-        fetchTunningList();
+        tunningStore.fetchAllItems();
     });
 
-    const totalInvestment = computed(() => {
-        return tunningList.value.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
-    });
+    const totalInvestment = computed(() => tunningStore.totalInvestment);
+    const totalPowerGain = computed(() => tunningStore.totalPowerGain);
+    const totalMods = computed(() => tunningStore.totalMods);
 
-    const totalPowerGain = computed(() => {
-        return tunningList.value.reduce((acc, item) => acc + (Number(item.powerGained) || 0), 0);
-    });
-
-    const totalMods = computed(() => tunningList.value.length);
-
-    const getCategoryIcon = (category) => {
-        return categoryIcons[category];
-    };
+    const getCategoryIcon = (category) => categoryIcons[category];
 
     const openAddDialog = () => {
         selectedTunning.value = null;
@@ -333,8 +305,8 @@
         doc.setFontSize(10);
         doc.text(`(${new Date().toLocaleDateString()})`, pageWidth / 2, 25, { align: 'center' });
 
-        const tableData = tunningList.value.map(item => [
-            new Date(item.date).toLocaleDateString(),
+        const tableData = tunningStore.items.map(item => [
+            parseDate(item.date).toLocaleDateString(),
             item.title,
             `${item.price} RON`,
             item.category,
@@ -359,20 +331,20 @@
     }
 
     const filteredList = computed(() => {
-        let result = tunningList.value;
+        let result = tunningStore.items;
 
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase();
             result = result.filter(item => item.title.toLowerCase().includes(query) || (item.description && item.description.toLowerCase().includes(query)));
         }
 
-        return result.sort((a, b) => {
+        return [...result].sort((a, b) => {
             let comp = 0;
             const modifier = sortDesc.value ? -1 : 1;
 
             switch(sortBy.value) {
                 case 'date':
-                    comp = new Date(a.date) - new Date(b.date);
+                    comp = parseDate(a.date) - parseDate(b.date);
                     break;
                 case 'price':
                     comp = Number(a.price) - Number(b.price);
@@ -389,7 +361,7 @@
                     return 0;
                 }
 
-                return new Date(b.date) - new Date(a.date);
+                return parseDate(b.date) - parseDate(a.date);
             }
 
             return comp * modifier;
@@ -400,6 +372,18 @@
         const option = sortOptions.find(option => option.value === sortBy.value);
         return option ? option.title : 'Sort';
     });
+
+    const parseDate = (dateVal) => {
+        if (!dateVal) {
+            return new Date();
+        }
+
+        if (typeof dateVal === 'object' && dateVal._seconds) {
+            return new Date(dateVal._seconds * 1000);
+        }
+
+        return new Date(dateVal);
+    };
 </script>
 
 

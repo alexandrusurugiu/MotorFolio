@@ -122,9 +122,9 @@
     import { ref } from 'vue';
     import appLogo from '@/assets/app-logo.png';
     import { useRouter } from 'vue-router';
-    import axios from 'axios';
     import { signInWithPopup, sendPasswordResetEmail, signInWithEmailAndPassword, updateProfile, createUserWithEmailAndPassword } from 'firebase/auth';
     import { auth, googleProvider } from '@/firebaseConfig'
+    import { useAuthStore } from '@/stores/auth';
 
     const tab = ref('login');
     const router = useRouter();
@@ -133,6 +133,7 @@
     const showForgotPasswordDialog = ref(false);
     const resetEmail = ref('');
     const resetLoading = ref(false);
+    const authStore = useAuthStore();
     const rules = {
         emailRequired: v => !!v || 'Email is required!',
         emailValid: v => /.@.+\../.test(v) || 'Email must be valid!',
@@ -150,15 +151,7 @@
     });
 
     const processToken = async(firebaseToken) => {
-        const response = await axios.post('/server/auth/verify-token', {
-            token: firebaseToken
-        });
-
-        const { user } = response.data;
-        localStorage.setItem('token', firebaseToken);
-        localStorage.setItem('user', JSON.stringify(user));
-
-        router.push('/maintenance');
+        await authStore.loginWithGoogleToken(firebaseToken);
     }
 
     const handleSubmit = async() => {
@@ -262,54 +255,54 @@
 </script>
 
 <style scoped>
-.bg-image {
-    position: relative;
-    height: 100vh;
-    width: 100%;
-}
+    .bg-image {
+        position: relative;
+        height: 100vh;
+        width: 100%;
+    }
 
-.bg-image::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('https://images.pexels.com/photos/9416/light-car-display-shop.jpg');
-    background-size: cover;
-    background-position: center;
-    filter: blur(6px);
-    z-index: 0;
-}
+    .bg-image::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: url('https://images.pexels.com/photos/9416/light-car-display-shop.jpg');
+        background-size: cover;
+        background-position: center;
+        filter: blur(6px);
+        z-index: 0;
+    }
 
-.logo {
-    position: relative;
-    z-index: 1;
-}
+    .logo {
+        position: relative;
+        z-index: 1;
+    }
 
-.text-h3 {
-    font-family: 'Montserrat';
-    font-weight: 550;
-    position: relative;
-    z-index: 1;
-}
+    .text-h3 {
+        font-family: 'Montserrat';
+        font-weight: 550;
+        position: relative;
+        z-index: 1;
+    }
 
-.text-h6 {
-    font-family: 'Open Sans';
-    position: relative;
-    z-index: 1;
-}
+    .text-h6 {
+        font-family: 'Open Sans';
+        position: relative;
+        z-index: 1;
+    }
 
-.mt-5 {
-    font-family: 'Open Sans';
-    position: relative;
-    z-index: 1;
-}
+    .mt-5 {
+        font-family: 'Open Sans';
+        position: relative;
+        z-index: 1;
+    }
 
-.create-account-text {
-    font-family: 'Open Sans';
-    position: relative;
-    z-index: 1;
-    text-align: center;
-}
+    .create-account-text {
+        font-family: 'Open Sans';
+        position: relative;
+        z-index: 1;
+        text-align: center;
+    }
 </style>

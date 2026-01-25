@@ -97,7 +97,7 @@
                                     size="small"
                                     prepend-icon="mdi-file-pdf-box"
                                     @click="generatePDF"
-                                    :disabled="restorationList.length === 0"
+                                    :disabled="totalStages === 0"
                                 >
                                     Export
                                 </v-btn>
@@ -231,7 +231,7 @@
                                         <div v-if="item.date" class="d-flex align-center">
                                             <div class="d-flex align-center mr-6 mb-2">
                                                 <v-icon icon="mdi-calendar" size="small" :color="item.status === 'completed' ? 'green' : 'purple'" class="mr-2"></v-icon>
-                                                <span  class="text-caption font-weight-medium" :class="item.status === 'completed' ? 'text-green-darken-2' : 'text-purple-darken-2'">{{ new Date(item.date).toLocaleDateString() }}</span>
+                                                <span  class="text-caption font-weight-medium" :class="item.status === 'completed' ? 'text-green-darken-2' : 'text-purple-darken-2'">{{ parseDate(item.date).toLocaleDateString() }}</span>
                                             </div>
 
                                             <div class="d-flex align-cente mb-2">                                            
@@ -255,13 +255,13 @@
     import { useRouter } from 'vue-router';
     import AddRestorationForm from '@/components/forms/AddRestorationForm.vue';
     import AppHeader from '@/components/forms/AppHeader.vue';
-    import axios from 'axios';
     import jsPDF from 'jspdf';
     import autoTable from 'jspdf-autotable';
+    import { useRestorationStore } from '@/stores/restoration';
 
     const showRestorationDialog = ref(false);
     const router = useRouter();
-    const restorationList = ref([]);
+    const restorationStore = useRestorationStore();
     const selectedRestoration = ref(null);
     const searchQuery = ref('');
     const sortBy = ref('date');
@@ -281,39 +281,16 @@
     }
 
     const fetchRestorationList = async () => {
-        try {
-            const user = JSON.parse(localStorage.getItem('user'));
-            if (!user || !user.id) {
-                console.error('An error occured. Please try again!');
-                return;
-            }
-
-            const response = await axios.get('/server/restoration');
-
-            if (Array.isArray(response.data)) {
-                restorationList.value = response.data.map(item => ({
-                    ...item,
-                    originalDate: item.date
-                }));
-                restorationList.value.sort((a, b) => new Date(b.date) - new Date(a.date));
-            } else {
-                console.error('Invalid data format, expected an array!');
-                restorationList.value = [];
-            }
-        } catch (error) {
-            console.error('Error when trying to fetch restoration list: ', error.message);
-            restorationList.value = [];
-        }
+        await restorationStore.fetchAllItems(true);
     };
 
     const deleteRestoration = async(id) => {
+        if(!confirm('Are you sure you want to delete the selected restoration?')) {
+            return;
+        }
+            
         try {
-            if(!confirm('Are you sure you want to delete the selected restoration?')) {
-                return;
-            }
-
-            await axios.delete(`/server/restoration/delete/${id}`);
-            restorationList.value = restorationList.value.filter(item => item.id !== id);
+            await restorationStore.deleteRestoration(id);
         } catch (error) {
             console.error('Error when trying to delete restoration: ', error.message);
             alert('Could not delete selected restoration!');  
@@ -321,36 +298,16 @@
     };
 
     onMounted(() => {
-        fetchRestorationList();
+        restorationStore.fetchAllItems();
     })
 
-    const totalStages = computed(() => restorationList.value.length);
+    const totalStages = computed(() => restorationStore.totalStages);
+    const completedStages = computed(() => restorationStore.completedStages);
+    const progressPercentage = computed(() => restorationStore.progressPercentage);
+    const totalCost = computed(() => restorationStore.totalCost);
 
-    const completedStages = computed(() => {
-        return restorationList.value.filter(stage => stage.status === 'completed').length;
-    });
-
-    const progressPercentage = computed(() => {
-        if (totalStages.value === 0) {
-            return 0;
-        }
-
-        return (completedStages.value / totalStages.value) * 100;
-    })
-
-    async function toggleStageStatus(id) {
-        const stage = restorationList.value.find(item => item.id === id);
-
-        if (stage) {
-            const newStatus = stage.status === 'completed' ? 'pending' : 'completed';
-            stage.status = newStatus;
-
-            if (newStatus === 'completed') {
-                stage.date = new Date().toLocaleDateString();
-            } else {
-                stage.date = stage.originalDate;
-            }
-        }
+    const toggleStageStatus = (id) => {
+        restorationStore.toggleStageStatus(id);
     };
 
     const openAddDialog = () => {
@@ -363,10 +320,6 @@
         showRestorationDialog.value = true;
     }
 
-    const totalCost = computed(() => {
-        return restorationList.value.reduce((acc, item) => acc + (Number(item.price) || 0), 0);
-    });
-
     const generatePDF = () => {
         const doc = new jsPDF();
         const pageWidth = doc.internal.pageSize.getWidth();
@@ -377,8 +330,8 @@
         doc.setFontSize(10);
         doc.text(`(${new Date().toLocaleDateString()})`, pageWidth / 2, 25, { align: 'center' });
 
-        const tableData = restorationList.value.map(item => [
-            new Date(item.date).toLocaleDateString(),
+        const tableData = restorationStore.items.map(item => [
+            parseDate(item.date).toLocaleDateString(),
             item.title,
             `${item.price} RON`,
             item.description || '-',
@@ -402,20 +355,20 @@
     }
 
     const filteredList = computed(() => {
-        let result = restorationList.value;
+        let result = restorationStore.items;
 
         if (searchQuery.value) {
             const query = searchQuery.value.toLowerCase();
             result = result.filter(item => item.title.toLowerCase().includes(query) || (item.description && item.description.toLowerCase().includes(query)));
         }
 
-        return result.sort((a, b) => {
+        return [...result].sort((a, b) => {
             let comp = 0;
             const modifier = sortDesc.value ? -1 : 1;
 
             switch (sortBy.value) {
                 case 'date':
-                    comp = new Date(a.date) - new Date(b.date);
+                    comp = parseDate(a.date) - parseDate(b.date);
                     break;
                 case 'price':
                     comp = Number(a.price) - Number(b.price);
@@ -430,7 +383,7 @@
             }
 
             if (comp === 0) {
-                return new Date(b.date) - new Date(a.date);
+                return parseDate(b.date) - parseDate(a.date);
             }
 
             return comp * modifier;
@@ -440,7 +393,19 @@
     const currentSortLabel = computed(() => {
         const option = sortOptions.find(option => option.value === sortBy.value);
         return option ? option.title : 'Sort';
-    })
+    });
+
+    const parseDate = (dateVal) => {
+        if (!dateVal) {
+            return new Date();
+        }
+
+        if (typeof dateVal === 'object' && dateVal._seconds) {
+            return new Date(dateVal._seconds * 1000);
+        }
+
+        return new Date(dateVal);
+    };
 </script>
 
 <style scoped>
