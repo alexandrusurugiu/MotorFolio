@@ -279,7 +279,10 @@
         tunningStore.fetchAllItems();
     });
 
-    const totalInvestment = computed(() => tunningStore.totalInvestment);
+    const totalInvestment = computed(() => {
+        const value = Number(tunningStore.totalInvestment) || 0;
+        return new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2,  maximumFractionDigits: 2 }).format(value);
+    });
     const totalPowerGain = computed(() => tunningStore.totalPowerGain);
     const totalMods = computed(() => tunningStore.totalMods);
 

@@ -249,7 +249,10 @@
         maintenanceStore.fetchAllItems();
     });
 
-    const totalCost = computed(() => maintenanceStore.totalCost);
+    const totalCost = computed(() => {
+        const value = Number(maintenanceStore.totalCost) || 0;
+        return new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2,  maximumFractionDigits: 2 }).format(value);
+    });
     const totalCount = computed(() => maintenanceStore.totalCount);
 
     const openAddDialog = () => {

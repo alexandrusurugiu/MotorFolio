@@ -304,7 +304,10 @@
     const totalStages = computed(() => restorationStore.totalStages);
     const completedStages = computed(() => restorationStore.completedStages);
     const progressPercentage = computed(() => restorationStore.progressPercentage);
-    const totalCost = computed(() => restorationStore.totalCost);
+    const totalCost = computed(() => {
+        const value = Number(restorationStore.totalCost) || 0;
+        return new Intl.NumberFormat('ro-RO', { minimumFractionDigits: 2,  maximumFractionDigits: 2 }).format(value);
+    });
 
     const toggleStageStatus = (id) => {
         restorationStore.toggleStageStatus(id);
