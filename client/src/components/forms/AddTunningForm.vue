@@ -62,6 +62,18 @@
         powerGained: 0
     });
 
+    const parseDate = (dateVal) => {
+        if (!dateVal) {
+            return new Date();
+        }
+
+        if (typeof dateVal === 'object' && dateVal._seconds) {
+            return new Date(dateVal._seconds * 1000);
+        }
+
+        return new Date(dateVal);
+    };
+
     const saveTunning = async () => {
         const { valid } = await form.value.validate();
         if (!valid) {
@@ -75,9 +87,9 @@
                 title: formData.value.title,
                 description: formData.value.description,
                 category: formData.value.category,
-                date: formData.value.date,
-                price: Number(formData.value.price),
-                powerGained: Number(formData.value.powerGained)
+                date: new Date(formData.value.date),
+                price: formData.value.price,
+                powerGained: formData.value.powerGained
             };
 
             if (isEditMode.value) {
@@ -104,7 +116,7 @@
                 title: props.editData.title,
                 description: props.editData.description,
                 category: props.editData.category,
-                date: new Date(props.editData.date),
+                date: parseDate(props.editData.date),
                 price: props.editData.price,
                 powerGained: props.editData.powerGained
             };

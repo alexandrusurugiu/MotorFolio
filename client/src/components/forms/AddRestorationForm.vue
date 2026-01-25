@@ -56,6 +56,18 @@
         price: 0,
     });
 
+    const parseDate = (dateVal) => {
+        if (!dateVal) {
+            return new Date();
+        }
+
+        if (typeof dateVal === 'object' && dateVal._seconds) {
+            return new Date(dateVal._seconds * 1000);
+        }
+
+        return new Date(dateVal);
+    };
+
     const saveRestoration = async () => {
         const { valid } = await form.value.validate();
         if (!valid) {
@@ -68,8 +80,8 @@
             const payload = {
                 title: formData.value.title,
                 description: formData.value.description,
-                date: Number(formData.value.date),
-                price: Number(formData.value.price)
+                date: new Date(formData.value.date),
+                price: formData.value.price
             };
 
             if (isEditMode.value) {
@@ -95,7 +107,7 @@
             formData.value = {
                 title: props.editData.title,
                 description: props.editData.description,
-                date: new Date(props.editData.date),
+                date: parseDate(props.editData.date),
                 price: props.editData.price
             };
         }
