@@ -6,7 +6,7 @@
 
             <div class="text-white text-left">
                 <h1 class="text-h4 font-weight-bold">MotorFolio</h1>
-                <p class="text-subtitle-1 opacity-80">Welcome back, {{ user }}!</p>
+                <p class="text-subtitle-1 opacity-80">Welcome back, {{ authStore.userName }}!</p>
             </div>
         </v-col>
 
@@ -26,30 +26,17 @@
 </template>
 
 <script setup>
-    import { ref, onMounted } from 'vue';
-    import { useRouter } from 'vue-router';
     import appLogo from '@/assets/app-logo.png';
+    import { useAuthStore } from '@/stores/auth';
 
-    const router = useRouter();
-    const user = ref('User');
+    const authStore = useAuthStore();
 
-    onMounted(() => {
-        const userData = localStorage.getItem('user');
-        if (userData) {
-            try {
-                const parsedUser = JSON.parse(userData);
-                user.value = parsedUser.name || 'User';
-            } catch (error) {
-                user.name = 'User';
-            }
-        }
-    });
-
-    function handleDisconnect() {
+    const handleDisconnect = () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');
-        router.push('/login');
-    }
+
+        window.location.href = '/'; 
+    };
 </script>
 
 <style>
