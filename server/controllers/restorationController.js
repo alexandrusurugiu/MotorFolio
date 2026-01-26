@@ -11,6 +11,7 @@ const addRestoration = async(req, res) => {
             description,
             date,
             price: Number(price),
+            status: 'pending',
             createdAt: new Date().toISOString()
         };
 

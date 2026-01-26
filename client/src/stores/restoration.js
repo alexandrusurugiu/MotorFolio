@@ -77,6 +77,9 @@ export const useRestorationStore = defineStore('restoration', {
             const stage = this.items.find(item => item.id === id);
 
             if (stage) {
+                const oldStatus = stage.status;
+                const oldDate = stage.date;
+                const oldCompletionDate = stage.completionDate;
                 const newStatus = stage.status === 'completed' ? 'pending' : 'completed';
                 stage.status = newStatus;
 
@@ -84,6 +87,49 @@ export const useRestorationStore = defineStore('restoration', {
                     stage.completionDate = new Date().toISOString();
                 } else {
                     stage.date = stage.originalDate;
+                    stage.completionDate = null; 
+                }
+
+                const parseDate = (dateVal) => {
+                    if (!dateVal) {
+                        return new Date();
+                    }
+
+                    if (typeof dateVal === 'object' && dateVal._seconds) {
+                        return new Date(dateVal._seconds * 1000);
+                    }
+
+                    return new Date(dateVal);
+                };
+
+                const payload = {
+                    title: stage.title,
+                    description: stage.description,
+                    price: Number(stage.price),
+                    date: parseDate(stage.date), 
+                    status: stage.status,
+                    completionDate: stage.completionDate,
+                    userId: stage.userId
+                };
+
+                if(newStatus === 'completed') {
+                    stage.completionDate = new Date().toISOString();
+                    payload.completionDate = stage.completionDate;
+                } else {
+                    stage.date = stage.originalDate;
+                    payload.date = stage.originalDate;
+                    payload.completionDate = null;
+                }
+
+                try {
+                    axios.put(`/server/restoration/update/${id}`, payload);
+                } catch (error) {
+                    console.error('Failed to update stage status: ', error);
+
+                    stage.status = oldStatus;
+                    stage.date = oldDate;
+                    stage.completionDate = oldCompletionDate;
+                    alert('Failed to save status. Please try again.');
                 }
             }
         }
